@@ -1,18 +1,13 @@
-﻿using System;
+﻿// for OpCodes in Harmony Transpiler
+
+using System;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Emit;
+using HarmonyLib;
 using RimWorld;
 using Verse;
-using Verse.AI;
-using System.Linq;
-using HarmonyLib;
-using System.Reflection;
-using System.Reflection.Emit; // for OpCodes in Harmony Transpiler
-using UnityEngine;
-
 using static LWM.DeepStorage.Utils.DBF;
-
-
-
 
 
 namespace LWM.DeepStorage
@@ -48,19 +43,20 @@ namespace LWM.DeepStorage
      * We also patch via postfix to make sure all of the stacks are tidy
      **************************************/
     // TODO: can we traspile this?  No?
-    [HarmonyPatch(typeof(Verse.GenPlace), "TryPlaceDirect")]
-    class Patch_TryPlaceDirect {
-        static void Prefix(ref Thing __state, Thing thing, IntVec3 loc)
+    [HarmonyPatch(typeof(GenPlace), "TryPlaceDirect")]
+    internal class Patch_TryPlaceDirect
+    {
+        private static void Prefix(ref Thing __state, Thing thing, IntVec3 loc)
         {
             // TryPlaceDirect changes what the variable "thing" points to
             //   We do actually need the original value of "thing":
             //  #HarmonyGotcha
             __state = thing;
             Utils.Err(TryPlaceDirect, "LWM:TryPlaceDirect: going to place " + thing.stackCount + thing + " at " + loc);
-            #if false
+#if false
             Map map; // please add parameter in Previx() line
             List<Thing> thingList = loc.GetThingList(map);
-            int i=0;
+            int i = 0;
             while (i < thingList.Count)
             {
                 Thing thing3 = thingList[i];
@@ -82,21 +78,25 @@ namespace LWM.DeepStorage
                 }
             }
             Log.Error("...everything passed");
-            #endif
+#endif
         }
-        static void Postfix(ref bool __result, Thing __state, IntVec3 loc, Map map,
-                            ref Thing resultingThing, Action<Thing, int> placedAction) {
-            Thing thing = __state;
+
+        private static void Postfix(ref bool __result, Thing __state, IntVec3 loc, Map map,
+            ref Thing resultingThing, Action<Thing, int> placedAction)
+        {
+            var thing = __state;
             // First check if we're dropping off in Deep Storage:
-            SlotGroup slotGroup = loc.GetSlotGroup(map);
+            var slotGroup = loc.GetSlotGroup(map);
 
             if (slotGroup == null || !(slotGroup?.parent is ThingWithComps) ||
-                ((ThingWithComps)slotGroup.parent).TryGetComp<CompDeepStorage>() == null) {
-                Utils.Warn(TryPlaceDirect, "  (placed "+__state+" NOT in Deep Storage: with result " + __result + ")");
+                ((ThingWithComps) slotGroup.parent).TryGetComp<CompDeepStorage>() == null)
+            {
+                Utils.Warn(TryPlaceDirect, "  (placed " + __state + " NOT in Deep Storage: with result " + __result + ")");
                 return;
             }
 
-            if (resultingThing != null) {
+            if (resultingThing != null)
+            {
                 // Two cases here if resultingThing exists:
                 //   1. There's a new object on the map
                 //        (so resultingThing is the original thing, we don't have anyting to put down)
@@ -105,51 +105,53 @@ namespace LWM.DeepStorage
                 //   (case three - something weird going on possibly involving carrying?)
                 //        (all bets are off anyway >_< )
                 // Probably, the pawn put down what they were carrying, and all is good.
-                Utils.Warn(TryPlaceDirect, "  successfully placed " + resultingThing.stackCount + resultingThing.ToString()+" ("+__result+")");
+                Utils.Warn(TryPlaceDirect, "  successfully placed " + resultingThing.stackCount + resultingThing + " (" + __result + ")");
                 Utils.TidyStacksOf(resultingThing);
                 return;
             }
             // Ok, so we still have something we want to place, and it goes in Deep Storage
             //   (We will still return __result=false if we can't place everything in the desired space.)
 
-            Utils.Err(TryPlaceDirect, "LWM:TryPlaceDirect tried to place " + thing.ToString() + " in " + slotGroup.ToString());
+            Utils.Err(TryPlaceDirect, "LWM:TryPlaceDirect tried to place " + thing + " in " + slotGroup);
 
             // Let's see if there's still room in the Deep Storage area the pawn is using:
-            List<Thing> list = map.thingGrid.ThingsListAt(loc);
-            int maxNumberStacks = ((ThingWithComps)slotGroup.parent).GetComp<CompDeepStorage>().maxNumberStacks;
+            var list = map.thingGrid.ThingsListAt(loc);
+            var maxNumberStacks = ((ThingWithComps) slotGroup.parent).GetComp<CompDeepStorage>().maxNumberStacks;
             // We know there was at least one thing here, and it either doesn't stack with our thing
             //   or its stack is full.
             // So, we go thru the items that are there
-            int thingsHere = 0;
-            for (int i = 0; i < list.Count; i++) {
-                Thing thing2 = list[i];
-                if (!thing2.def.EverStorable(false)) {
-                    //not an object we count
+            var thingsHere = 0;
+            for (var i = 0; i < list.Count; i++)
+            {
+                var thing2 = list[i];
+                if (!thing2.def.EverStorable(false)) //not an object we count
                     continue;
-                }
                 thingsHere++;
-                Utils.Warn(TryPlaceDirect, "  Currently there are "+thingsHere+
-                           " things here, max: "+maxNumberStacks);
-                if (thingsHere==1) {
-                    //  (should be safe because 1st haulable stack would already have been
+                Utils.Warn(TryPlaceDirect, "  Currently there are " + thingsHere +
+                                           " things here, max: " + maxNumberStacks);
+                if (thingsHere == 1) //  (should be safe because 1st haulable stack would already have been
                     //   tested by default vanilla function)
                     continue;
-                }
                 //unfortunately, we have to duplicate some of the original code:
-                if (!thing2.CanStackWith(thing)) {
-                    Utils.Warn(TryPlaceDirect, "...ignoring \"other\" stack " + thing2.ToString());
-                    continue;  // am carrying wood, but this is sheep.  Or rock, whatever.
+                if (!thing2.CanStackWith(thing))
+                {
+                    Utils.Warn(TryPlaceDirect, "...ignoring \"other\" stack " + thing2);
+                    continue; // am carrying wood, but this is sheep.  Or rock, whatever.
                 }
+
                 // Okay, can stack.
-                if (thing2.stackCount >= thing2.def.stackLimit) {
-                    Utils.Warn(TryPlaceDirect, "...ignoring full stack " + thing2.ToString());
+                if (thing2.stackCount >= thing2.def.stackLimit)
+                {
+                    Utils.Warn(TryPlaceDirect, "...ignoring full stack " + thing2);
                     continue; // stack is full.
                 }
+
                 // Put some down in the non-full stack!
                 var origStackCount = thing.stackCount;
-                if (thing2.TryAbsorbStack(thing, true)) {
+                if (thing2.TryAbsorbStack(thing, true))
+                {
                     // the "thing2" stack could hold everything we wanted to put down!
-                    Utils.Warn(TryPlaceDirect, "... Object " + thing2.ToString() + " absorbed ALL of " + thing.ToString());
+                    Utils.Warn(TryPlaceDirect, "... Object " + thing2 + " absorbed ALL of " + thing);
                     resultingThing = thing2;
                     // Okay, I like this notation:  only call if non-null:
                     placedAction?.Invoke(thing2, origStackCount);
@@ -157,52 +159,58 @@ namespace LWM.DeepStorage
                     __result = true; // Could put down everything!
                     return;
                 }
-                Utils.Warn(TryPlaceDirect, "... Object " + thing2.ToString() + " absorbed SOME of " + thing.ToString());
+
+                Utils.Warn(TryPlaceDirect, "... Object " + thing2 + " absorbed SOME of " + thing);
                 // Since we tried to put some down in that stack, do we do placedAction?
-                if (placedAction != null && origStackCount != thing.stackCount) {
-                    placedAction(thing2, origStackCount - thing.stackCount);
-                }
+                if (placedAction != null && origStackCount != thing.stackCount) placedAction(thing2, origStackCount - thing.stackCount);
                 // ...but there's still more to place, so keep going:
             } // end loop of objects in this location
-            if (thingsHere >= maxNumberStacks) { // Ran out of room in the storage object but still want to put stuff down ;_;
+
+            if (thingsHere >= maxNumberStacks)
+            {
+                // Ran out of room in the storage object but still want to put stuff down ;_;
                 Utils.Warn(TryPlaceDirect, "...But ran out of stack space here: all " + maxNumberStacks + " filled");
                 __result = false;
                 return; // no need to TidyStacks here - they have to be all full
             }
+
             // if we reach here, we found an empty space,
             //   so put something down!
-            Utils.Warn(TryPlaceDirect, "...Found empty stack space at " + loc.ToString() +
-                       ". Trying to create from " + thing.ToString());
+            Utils.Warn(TryPlaceDirect, "...Found empty stack space at " + loc +
+                                       ". Trying to create from " + thing);
             // In some circumstances (e.g., butchering a large animal), a pawn can be putting
             //   down way more than stackLimit of something.  We deal with that scenario here
             //////////////////////// NOTE:  POSSIBLE PROBLEM: ////////////////////
             //   resultingThing is set to only the last thing here - it's possible we miss something
             //   important by placing as much as we can at once:
-            while (thing.stackCount > thing.def.stackLimit) {// put down part of a carried load?
-                Thing thing2 = thing.SplitOff(thing.def.stackLimit);
+            while (thing.stackCount > thing.def.stackLimit)
+            {
+                // put down part of a carried load?
+                var thing2 = thing.SplitOff(thing.def.stackLimit);
                 resultingThing = GenSpawn.Spawn(thing2, loc, map);
                 Utils.Warn(TryPlaceDirect, "...put down one full stack ("
-                           + resultingThing.ToString() + "); " + thing.stackCount + " left");
+                                           + resultingThing + "); " + thing.stackCount + " left");
                 placedAction?.Invoke(thing2, thing2.stackCount);
                 thingsHere++;
-                if (thingsHere >= maxNumberStacks) { // Oh dear.  There was still at least SOME left...
+                if (thingsHere >= maxNumberStacks)
+                {
+                    // Oh dear.  There was still at least SOME left...
                     Utils.Warn(TryPlaceDirect, "...But ran out of stack space here: all "
-                               + maxNumberStacks + " filled but still have " + thing.stackCount + " left");
+                                               + maxNumberStacks + " filled but still have " + thing.stackCount + " left");
                     __result = false; // couldn't put things down
                     return; // no need to TidyStacks - they all have to be full
                 }
             }
+
             // Either Spawn the thing (or Spawn the final part of the thing):
             resultingThing = GenSpawn.Spawn(thing, loc, map);
             __result = true; // nothing unplaced!
 
-            Utils.Warn(TryPlaceDirect, "...created " + resultingThing.ToString());
-            placedAction?.Invoke(thing, thing.stackCount);// Okay, I like this notation
+            Utils.Warn(TryPlaceDirect, "...created " + resultingThing);
+            placedAction?.Invoke(thing, thing.stackCount); // Okay, I like this notation
             Utils.TidyStacksOf(resultingThing);
-            return; // with __result=!flag (probably "true");
         } // end TryPlaceDirect's Postfix
     } // end patching TryPlaceDirect
-
 
 
     /**********************************************************************
@@ -228,12 +236,14 @@ namespace LWM.DeepStorage
      * (I could probably manage without the Utils function, but this is
      *  much easier in terms of C# -> IL magic)
      **************************************/
-    [HarmonyPatch(typeof(Verse.GenSpawn), "Spawn", new Type[] { typeof(Thing), typeof(IntVec3), typeof(Map), typeof(Rot4), typeof(WipeMode), typeof(bool) })]
-    class Patch_GenSpawn_Spawn {
+    [HarmonyPatch(typeof(GenSpawn), "Spawn", typeof(Thing), typeof(IntVec3), typeof(Map), typeof(Rot4), typeof(WipeMode), typeof(bool))]
+    internal class Patch_GenSpawn_Spawn
+    {
         //        static void Prefix (Thing newThing) {
         //            Log.Warning("Spawn: " + newThing.ToString() + ".  Destroyed? " + newThing.Destroyed);
         //        }
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
             // replace if (newThing.def.category == ThingCategory.Item)
             // with
             //         if (newThing.def.category == ThingCategory.Item && 
@@ -250,35 +260,38 @@ namespace LWM.DeepStorage
             //  if we fail(pass?).
             var code = new List<CodeInstruction>(instructions);
             var i = 0; // using two for loops
-            for (; i < code.Count; i++) {
+            for (; i < code.Count; i++)
+            {
                 yield return code[i];
-                if (code[i].opcode == OpCodes.Ldarg_0) { // thing
+                if (code[i].opcode == OpCodes.Ldarg_0) // thing
                     if (code[i + 1]?.opcode == OpCodes.Ldfld && // thing.def
-                        (FieldInfo)code[i + 1]?.operand == typeof(Verse.Thing).GetField("def")) {
+                        (FieldInfo) code[i + 1]?.operand == typeof(Thing).GetField("def"))
+                    {
                         i++;
                         yield return code[i];
                         if (code[i + 1]?.opcode == OpCodes.Ldfld && //thing.def.category!
-                            (FieldInfo)code[i + 1]?.operand == typeof(Verse.ThingDef).GetField("category")) {
+                            (FieldInfo) code[i + 1]?.operand == typeof(ThingDef).GetField("category"))
+                        {
                             i++;
                             // 
                             yield return code[i++]; // the category
                             yield return code[i++]; // ldc.i4.2  ("item" category)
                             // i now points to the branch operation; we need the label
-                            System.Reflection.Emit.Label branchLabel;
-                            branchLabel = (Label)code[i].operand;
+                            Label branchLabel;
+                            branchLabel = (Label) code[i].operand;
                             yield return code[i++]; // branch if not equal to branchLabel
                             CodeInstruction c;
                             // if (respawningAfterLoad) jump...
                             c = new CodeInstruction(OpCodes.Ldarg_S, 5); // 5 is respawningAfterLoad
                             yield return c;
-                            c = new CodeInstruction(OpCodes.Brtrue,branchLabel);
+                            c = new CodeInstruction(OpCodes.Brtrue, branchLabel);
                             yield return c;
                             // if (CanStoreMoreThanOneThingAt(map,loc)) jump...
                             c = new CodeInstruction(OpCodes.Ldarg_2); // map
                             yield return c;
                             c = new CodeInstruction(OpCodes.Ldarg_1); // loc
                             yield return c;
-                            c = new CodeInstruction(OpCodes.Call, HarmonyLib.AccessTools.Method(
+                            c = new CodeInstruction(OpCodes.Call, AccessTools.Method(
                                 "LWM.DeepStorage.Utils:CanStoreMoreThanOneThingAt"));
                             yield return c; // Utils.CanStoreMoreThanOneThingAt(map, loc);
                             c = new CodeInstruction(OpCodes.Brtrue, branchLabel);
@@ -286,15 +299,10 @@ namespace LWM.DeepStorage
                             break; // Done with this for loop                            
                         }
                     }
-                }
             }
+
             // finish the rest of the function:
-            for (; i < code.Count; i++) {
-                yield return code[i];
-            }
-            yield break;
+            for (; i < code.Count; i++) yield return code[i];
         }
     } // done with patching GenSpawn's Spawn(...)
-
-
 }

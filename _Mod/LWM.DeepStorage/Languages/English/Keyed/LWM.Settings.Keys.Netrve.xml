@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <!-- Settings -->
+  <LWM_DS_useNewRightClick>Use new Deep Storage custom Right Click</LWM_DS_useNewRightClick>
+  <LWM_DS_useNewRightClickDesc>This setting will activate the new Deep Storage Right Click UI by Netrve. Work in Progress.</LWM_DS_useNewRightClickDesc>
+</LanguageData>

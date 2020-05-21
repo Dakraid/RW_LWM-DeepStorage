@@ -1,8 +1,6 @@
-﻿using System;
-using RimWorld;
+﻿using HarmonyLib;
 using Verse;
 using Verse.AI;
-using HarmonyLib;
 using static LWM.DeepStorage.Utils.DBF; // trace utils
 
 // NOTE: PlaceCarriedThingInCellFacing not actually used?  So no need to patch it?
@@ -59,55 +57,58 @@ namespace LWM.DeepStorage
             //TODO?  Make a wrapper around old initAction that doesn't put 
             //  stuff down if failure happens?
 
-            Action placeStuff = __result.initAction;
+            var placeStuff = __result.initAction;
             // NOTE: none of this initAtion happens if the game is being loaded while storing is going on:
             //   This means, among other things, that pawns don't get progress bars on reload
             //   I could make it happen if it ever gets to be important...
-            __result.initAction=delegate ()
+            __result.initAction = delegate
             {
 //                __result.defaultCompleteMode = ToilCompleteMode.Instant;
-                Pawn actor = __result.actor;
-                Job curJob = actor.jobs.curJob;
-                IntVec3 cell = curJob.GetTarget(cellInd).Cell;
-                Utils.Warn(PlaceHauledThingInCell, "initAction called for " + actor+"'s haul job "
-                           +curJob.def.driverClass+" to "+cell+" (toil "+actor.jobs.curDriver.CurToilIndex+")");
+                var actor = __result.actor;
+                var curJob = actor.jobs.curJob;
+                var cell = curJob.GetTarget(cellInd).Cell;
+                Utils.Warn(PlaceHauledThingInCell, "initAction called for " + actor + "'s haul job "
+                                                   + curJob.def.driverClass + " to " + cell + " (toil " + actor.jobs.curDriver.CurToilIndex + ")");
                 //                Log.Error("Place Hauled Thing in Cell:  Toil preInit!  Putting in "+cell.ToString());
                 //                actor.jobs.debugLog = true;
                 if (actor.carryTracker.CarriedThing == null)
-                { // error as per original toil code
-                    Log.Error(actor + " tried to place hauled thing in cell but is not hauling anything?", false);
+                {
+                    // error as per original toil code
+                    Log.Error(actor + " tried to place hauled thing in cell but is not hauling anything?");
                     return;
                 }
-                SlotGroup slotGroup = actor.Map.haulDestinationManager.SlotGroupAt(cell);
+
+                var slotGroup = actor.Map.haulDestinationManager.SlotGroupAt(cell);
                 CompDeepStorage cds;
                 if (!(slotGroup?.parent is ThingWithComps) ||
-                    (cds = (((ThingWithComps)slotGroup?.parent)?.GetComp<CompDeepStorage>()))==null)
+                    (cds = ((ThingWithComps) slotGroup?.parent)?.GetComp<CompDeepStorage>()) == null)
                 {
                     Utils.Warn(PlaceHauledThingInCell, "not going into Deep Storage");
                     // Pick Up & Haul reuses Toils; I realized this meant I need to keep original placeStuff() around:
                     // Also, is it possible another mod does something weird with placeStuff?
                     //   this is a cheap "just to be on the safe side" check:
-                    if (placeStuff!=null) placeStuff();
+                    if (placeStuff != null) placeStuff();
                     return;
                 }
-                int timeStoringTakes = cds.TimeStoringTakes(actor.Map,cell, actor);
-                timeStoringTakes =(int)(timeStoringTakes*Settings.storingGlobalScale);
+
+                var timeStoringTakes = cds.TimeStoringTakes(actor.Map, cell, actor);
+                timeStoringTakes = (int) (timeStoringTakes * Settings.storingGlobalScale);
                 if (timeStoringTakes <= 1
-                    || !Settings.storingTakesTime ) //boo, hiss, but some ppl use it
-                { // just like vanilla
+                    || !Settings.storingTakesTime) //boo, hiss, but some ppl use it
+                {
+                    // just like vanilla
                     Utils.Warn(PlaceHauledThingInCell, "Instantaneous storing time");
-                    if (placeStuff!=null) placeStuff();
+                    if (placeStuff != null) placeStuff();
                     return;
                 }
+
 //                __result.defaultCompleteMode = ToilCompleteMode.Delay;
                 if (actor.jobs.curDriver.ticksLeftThisToil < 1) // test is probably superfluous
-                {
                     actor.jobs.curDriver.ticksLeftThisToil = timeStoringTakes;
-                }
-                Utils.Mess(PlaceHauledThingInCell, "  Storing time set to: "+actor.jobs.curDriver.ticksLeftThisToil);
+                Utils.Mess(PlaceHauledThingInCell, "  Storing time set to: " + actor.jobs.curDriver.ticksLeftThisToil);
                 // It'd be nice to have a progress bar for deep storage
                 __result.WithProgressBar(TargetIndex.B, () => 1f -
-                          (float)__result.actor.jobs.curDriver.ticksLeftThisToil / timeStoringTakes, true);
+                                                              (float) __result.actor.jobs.curDriver.ticksLeftThisToil / timeStoringTakes, true);
 
                 /***** Add some end conditions: *****/
                 //TODO: .....is this even a good idea?  if the pawn is moving a lot of things at once
@@ -123,32 +124,26 @@ namespace LWM.DeepStorage
 //                __result.FailOn(delegate() {});
                 // TODO: any other end conditions?  Fail conditions?
                 // TODO: Any reservations?
-
-
-
-
-
-
             }; // changed initAction!
             __result.defaultCompleteMode = ToilCompleteMode.Delay;
             // The tickAction is only called if we are going into Deep Storage,
             //   otherwise the toil is over after initAction and no ticks happen.
             // This will still get called even on load/save, because ticks count down.
-            __result.tickAction = delegate ()
+            __result.tickAction = delegate
             {
-                Pawn pawn = __result.actor;
+                var pawn = __result.actor;
                 //Utils.Mess(PlaceHauledThingInCell, 
                 //           "  "+pawn+"'s ticks left: " + __result.actor.jobs.curDriver.ticksLeftThisToil);
                 if (pawn.jobs.curDriver.ticksLeftThisToil <= 1) // last tick is 1, not 0
                 {
-                    Utils.Warn(PlaceHauledThingInCell, "  "+pawn+" hit "+pawn.jobs.curDriver.ticksLeftThisToil+
-                               " ticks; about to put down "+(pawn.carryTracker.CarriedThing!=null?
-                                                             (""+pawn.carryTracker.CarriedThing.stackCount+
-                                                              pawn.carryTracker.CarriedThing):
-                                                             "NULL ITEM"));
-                    if (placeStuff!=null) placeStuff();
-                    return;
+                    Utils.Warn(PlaceHauledThingInCell, "  " + pawn + " hit " + pawn.jobs.curDriver.ticksLeftThisToil +
+                                                       " ticks; about to put down " + (pawn.carryTracker.CarriedThing != null
+                                                           ? "" + pawn.carryTracker.CarriedThing.stackCount +
+                                                             pawn.carryTracker.CarriedThing
+                                                           : "NULL ITEM"));
+                    if (placeStuff != null) placeStuff();
                 }
+
                 /*
                 if (pawn.jobs.curDriver.ticksLeftThisToil%50==0) {
                     // TODO: fail conditions
@@ -173,5 +168,4 @@ namespace LWM.DeepStorage
             //    Um?
         } // end Postfix
     }
-
 }

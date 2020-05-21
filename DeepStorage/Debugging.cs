@@ -1,16 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using Harmony;
-using RimWorld;
-using Verse;
-using Verse.AI;
-using UnityEngine;
-using System.Reflection.Emit; // for OpCodes in Harmony Transpiler
+﻿// for OpCodes in Harmony Transpiler
 
 
-namespace LWM.DeepStorage {
+namespace LWM.DeepStorage
+{
     /* Some code to trace every line of a function:  *
      *   (specifically, Thing's CanStackWith())      *
      *   Requires using System.Reflection.Emit;      */
@@ -22,12 +14,12 @@ namespace LWM.DeepStorage {
         }
 
         static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
-            int i=0;
+            int i = 0;
             foreach (CodeInstruction code in instructions) {
-                List<Label> ls=code.labels;
-                code.labels=new List<Label>();
+                List<Label> ls = code.labels;
+                code.labels = new List<Label>();
                 CodeInstruction c = new CodeInstruction(OpCodes.Ldarg_0);
-                c.labels=ls;
+                c.labels = ls;
                 yield return c;
                 yield return new CodeInstruction(OpCodes.Ldc_I4, i++);
 
@@ -63,7 +55,6 @@ namespace LWM.DeepStorage {
 #endif
 
 
-    
 #if false
     //    [HarmonyPatch(typeof(WorkGiver_Merge), "JobOnThing")]
     class Patch_WorkGiver_Merge {
@@ -279,10 +270,6 @@ namespace LWM.DeepStorage {
             return true;
         }
     }
-
-
-
-
 
 
 #endif

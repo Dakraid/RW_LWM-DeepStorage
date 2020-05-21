@@ -1,14 +1,13 @@
-using System;
-using RimWorld;
-using Verse;
-using Verse.AI;
-using HarmonyLib;
-using System.Reflection;
-using System.Reflection.Emit; // for OpCodes in Harmony Transpiler
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
-using static LWM.DeepStorage.Utils.DBF; // trace utils
+using System.Reflection;
+using System.Reflection.Emit;
+using HarmonyLib;
+using RimWorld;
+
+// for OpCodes in Harmony Transpiler
+
+// trace utils
 
 /* ListerHaulables should check if items in DSU are haulable
  * This is important in cases where a user changes what is 
@@ -36,21 +35,20 @@ namespace LWM.DeepStorage
      *
      * Note that it is safe for this patch to be applied more than once.
      */
-    [HarmonyPatch(typeof(RimWorld.ListerHaulables), "ListerHaulablesTick")]
-    static class Patch_ListerHaulablesTick {
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions) {
-            List<CodeInstruction> code=instructions.ToList();
-            var check=typeof(ListerHaulables).GetMethod("Check", BindingFlags.NonPublic|BindingFlags.Instance);
-            for (int i=0; i<code.Count; i++) {
-                if (code[i].opcode!=OpCodes.Br ||
-                    code[i-1].opcode!=OpCodes.Call ||
-                    (MethodInfo)code[i-1].operand!=check) {
+    [HarmonyPatch(typeof(ListerHaulables), "ListerHaulablesTick")]
+    internal static class Patch_ListerHaulablesTick
+    {
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var code = instructions.ToList();
+            var check = typeof(ListerHaulables).GetMethod("Check", BindingFlags.NonPublic | BindingFlags.Instance);
+            for (var i = 0; i < code.Count; i++)
+                if (code[i].opcode != OpCodes.Br ||
+                    code[i - 1].opcode != OpCodes.Call ||
+                    (MethodInfo) code[i - 1].operand != check)
                     yield return code[i];
-                //} else {
-                //    Log.Warning("Found the 'break;' code! Skipping...");
-                }
-            }
-            yield break;
+            //} else {
+            //    Log.Warning("Found the 'break;' code! Skipping...");
         }
     }
 }
