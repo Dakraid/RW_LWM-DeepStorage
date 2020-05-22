@@ -76,7 +76,7 @@ namespace LWM.DeepStorage
         public static bool Prefix(Vector3 clickPosition, IntVec3 c, Pawn pawn, List<FloatMenuOption> opts,
             bool runningAJGWO, bool drafted /*only if runningAJGWO*/)
         {
-            if (Settings.useDeepStorageNewRightClick) return DSGUI.ContextMenuStorage.Create(clickPosition, c, pawn, opts);
+            if (Settings.useDeepStorageNewRightClick) return DSGUI.ContextMenuStorage.Create(clickPosition, pawn, opts);
 
             Utils.Mess(RightClickMenu, "" + (runningAJGWO ? "AddJobGiverWorkOrders" : "AddHumanlikeOrders") +
                                        " called.  Currently "
@@ -167,6 +167,12 @@ namespace LWM.DeepStorage
 
         public static void Postfix(List<FloatMenuOption> opts)
         {
+            if (Settings.useDeepStorageNewRightClick)
+            {
+                Log.Message($"[LWM] Opts: {opts.ToStringSafeEnumerable()}");
+                return;
+            }
+                
             if (runningPatchLogic) return;
             if (realList.Count == 0) return; // incidentally breaks out of logic here in case not in a DSU
 

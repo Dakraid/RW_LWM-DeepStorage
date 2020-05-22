@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using HugsLib.Utils;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -55,52 +57,50 @@ namespace LWM.DeepStorage
         public static void GenerateListing(
             Rect inRect,
             Pawn pawn,
-            KeyValuePair<Thing, IntVec3> thingEntry,
+            Thing thing,
+            Vector3 clickPos,
             List<FloatMenuOption> opts,
             int boxHeight,
             int y)
         {
-            var entryRect = new Rect(0.0f, boxHeight * y, inRect.width - 16, boxHeight);
+            var entryRect = new Rect(0.0f, boxHeight * y, inRect.width, boxHeight);
 
             if (Mouse.IsOver(entryRect))
                 Widgets.DrawHighlight(entryRect);
 
-            TooltipHandler.TipRegion(entryRect, (TipSignal) thingEntry.Key.def.description);
+            TooltipHandler.TipRegion(entryRect, (TipSignal) thing.def.description);
 
             Texture2D thingIcon;
             try
             {
-                thingIcon = thingEntry.Key.def.uiIcon;
-                GUI.color = thingEntry.Key.def.uiIconColor;
+                thingIcon = thing.def.uiIcon;
+                GUI.color = thing.def.uiIconColor;
             }
             catch
             {
-                Log.Message($"[LWM] Thing {thingEntry.Key.def.defName} has no UI icon.");
+                Log.Message($"[LWM] Thing {thing.def.defName} has no UI icon.");
                 thingIcon = Texture2D.blackTexture;
             }
 
             // We keep the LeftPart for the future, but right now it doesn't do anything
             var graphicRect = entryRect.LeftPart(0.9f);
+            graphicRect.width -= 16;
             Widgets.DrawTextureFitted(graphicRect.LeftPart(0.2f), thingIcon, 1f);
             GUI.color = Color.white;
             Text.Font = GameFont.Tiny;
-            Widgets.Label(graphicRect.RightPart(0.8f).ContractedBy(4f), thingEntry.Key.Label.CapitalizeFirst());
+            Widgets.Label(graphicRect.RightPart(0.8f).ContractedBy(4f), thing.Label.CapitalizeFirst());
             
             var actionRect = entryRect.RightPart(0.1f);
+            actionRect.x -= 16;
             
             var menuIcon = ContentFinder<Texture2D>.Get("UI/Buttons/MainButtons/Menu", true);
             if (Widgets.ButtonImageFitted(actionRect, menuIcon))
             {
                 Log.Message("[LWM] Clickity Click!");
-                var origParams = new object[] {thingEntry.Value, pawn, opts};
-                Patch_FloatMenuMakerMap.SetPosition(thingEntry.Key, thingEntry.Value);
-                AHlO.Invoke(null, origParams);
-                Patch_FloatMenuMakerMap.SetPosition(thingEntry.Key, IntVec3.Invalid);
-            }
 
-            /*
-            if (Widgets.ButtonInvisible(entryRect)) {}
-            */
+                var origParams = new object[] {clickPos, pawn, opts};
+                AHlO.Invoke(null, origParams);
+            }
 
             if (y == 0) return;
 
