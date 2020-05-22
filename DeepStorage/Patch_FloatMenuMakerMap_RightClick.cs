@@ -44,13 +44,13 @@ namespace LWM.DeepStorage
         [HarmonyPriority(Priority.First)]
         public static bool Prefix(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
         {
-            return Patch_FloatMenuMakerMap.Prefix(clickPos, IntVec3.Invalid, pawn, opts, false, false);
+            return Patch_FloatMenuMakerMap.Prefix(clickPos, IntVec3.Invalid, pawn, opts);
         }
 
         [HarmonyPriority(Priority.Last)]
-        public static void Postfix(List<FloatMenuOption> opts)
+        public static void Postfix(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
         {
-            Patch_FloatMenuMakerMap.Postfix(opts);
+            Patch_FloatMenuMakerMap.Postfix(clickPos, pawn, opts);
         }
     }
 
@@ -73,18 +73,21 @@ namespace LWM.DeepStorage
             BindingFlags.NonPublic);
 
         // We have to run as Prefix, because we need to intercept the incoming List.
-        public static bool Prefix(Vector3 clickPosition, IntVec3 c, Pawn pawn, List<FloatMenuOption> opts,
-            bool runningAJGWO, bool drafted /*only if runningAJGWO*/)
+        public static bool Prefix(Vector3 clickPosition, IntVec3 c, Pawn pawn, List<FloatMenuOption> opts)
         {
-            if (Settings.useDeepStorageNewRightClick) return DSGUI.ContextMenuStorage.Create(clickPosition, pawn, opts);
-
-            Utils.Mess(RightClickMenu, "" + (runningAJGWO ? "AddJobGiverWorkOrders" : "AddHumanlikeOrders") +
-                                       " called.  Currently "
-                                       + (runningPatchLogic ? "" : " not ") + "running special Patch Logic");
-            if (runningAJGWO) return true;
+            if (Settings.useDeepStorageNewRightClick)
+            {
+                if (Find.WindowStack.IsOpen(typeof(DSGUI_ListModal))) return true;
+                
+                if (!opts.NullOrEmpty())
+                    opts.Clear();
+                
+                return DSGUI.ContextMenuStorage.Create(clickPosition, pawn, opts);
+            }
 
             if (failsafe++ > 500) runningPatchLogic = false;
             if (runningPatchLogic) return true;
+            
             // Only give nice tidy menu if items are actually in Deep Storage: otherwise, they
             //   are a jumbled mess on the floor, and pawns can only interact with what's on
             //   top until they've cleaned up the mess.
@@ -163,16 +166,12 @@ namespace LWM.DeepStorage
             realList.Clear();
             foreach (var m in opts) realList.Add(m); // got to store it in case anything adjusts it in a different Postfix
             return false;
-        } // end Prefix
+        }
 
-        public static void Postfix(List<FloatMenuOption> opts)
+        public static void Postfix(Vector3 clickPosition, Pawn pawn, List<FloatMenuOption> opts)
         {
-            if (Settings.useDeepStorageNewRightClick)
-            {
-                Log.Message($"[LWM] Opts: {opts.ToStringSafeEnumerable()}");
-                return;
-            }
-                
+            if (Settings.useDeepStorageNewRightClick) return;
+
             if (runningPatchLogic) return;
             if (realList.Count == 0) return; // incidentally breaks out of logic here in case not in a DSU
 

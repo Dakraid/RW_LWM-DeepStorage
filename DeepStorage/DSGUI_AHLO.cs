@@ -15,15 +15,15 @@ namespace LWM.DeepStorage
     public class DSGUI_AHLO
     {
         [UsedImplicitly]
-        private static void AddHumanlikeOrdersForThing(Thing target, Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
+        public static void AddHumanlikeOrdersForThing(Thing target, Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
         {
-            var c = IntVec3.FromVector3(clickPos);
+            // var c = IntVec3.FromVector3(clickPos);
             if (pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation))
                 foreach (var item8 in GenUI.TargetsAt_NewTemp(clickPos, TargetingParameters.ForArrest(pawn), true))
                 {
                     var flag = item8.HasThing && item8.Thing is Pawn thing && thing.IsWildMan();
                     if (!pawn.Drafted && !flag) continue;
-                    
+
                     if (!pawn.CanReach(item8, PathEndMode.OnCell, Danger.Deadly))
                     {
                         opts.Add(new FloatMenuOption("CannotArrest".Translate() + ": " + "NoPath".Translate().CapitalizeFirst(), null));
@@ -44,7 +44,8 @@ namespace LWM.DeepStorage
                                 var job19 = JobMaker.MakeJob(JobDefOf.Arrest, pTarg2, building_Bed3);
                                 job19.count = 1;
                                 pawn.jobs.TryTakeOrderedJob(job19);
-                                if (pTarg2.Faction != null && (pTarg2.Faction != Faction.OfPlayer && !pTarg2.Faction.def.hidden || pTarg2.IsQuestLodger())) DoModalDialogIfNotKnown(ConceptDefOf.ArrestingCreatesEnemies);
+                                if (pTarg2.Faction != null && (pTarg2.Faction != Faction.OfPlayer && !pTarg2.Faction.def.hidden || pTarg2.IsQuestLodger()))
+                                    DoModalDialogIfNotKnown(ConceptDefOf.ArrestingCreatesEnemies);
                             }
                         }
 
@@ -54,43 +55,41 @@ namespace LWM.DeepStorage
                     }
                 }
 
-            foreach (var thing in c.GetThingList(pawn.Map))
+            if (target.def.ingestible != null && pawn.RaceProps.CanEverEat(target) && target.IngestibleNow)
             {
-                var t = thing;
-                if (t.def.ingestible == null || !pawn.RaceProps.CanEverEat(t) || !t.IngestibleNow) continue;
-                
-                var text = !t.def.ingestible.ingestCommandString.NullOrEmpty()
-                    ? string.Format(t.def.ingestible.ingestCommandString, t.LabelShort)
-                    : (string) "ConsumeThing".Translate(t.LabelShort, t);
-                if (!t.IsSociallyProper(pawn)) text = text + ": " + "ReservedForPrisoners".Translate().CapitalizeFirst();
+                var text = !target.def.ingestible.ingestCommandString.NullOrEmpty()
+                    ? string.Format(target.def.ingestible.ingestCommandString, target.LabelShort)
+                    : (string) "ConsumeThing".Translate(target.LabelShort, target);
+                if (!target.IsSociallyProper(pawn)) text = text + ": " + "ReservedForPrisoners".Translate().CapitalizeFirst();
                 FloatMenuOption floatMenuOption;
-                if (t.def.IsNonMedicalDrug && pawn.IsTeetotaler())
+                if (target.def.IsNonMedicalDrug && pawn.IsTeetotaler())
                 {
                     floatMenuOption = new FloatMenuOption(text + ": " + TraitDefOf.DrugDesire.DataAtDegree(-1).LabelCap, null);
                 }
-                else if (FoodUtility.InappropriateForTitle(t.def, pawn, true))
+                else if (FoodUtility.InappropriateForTitle(target.def, pawn, true))
                 {
                     floatMenuOption = new FloatMenuOption(text + ": " + "FoodBelowTitleRequirements".Translate(pawn.royalty.MostSeniorTitle.def.GetLabelFor(pawn)), null);
                 }
-                else if (!pawn.CanReach(t, PathEndMode.OnCell, Danger.Deadly))
+                else if (!pawn.CanReach(target, PathEndMode.OnCell, Danger.Deadly))
                 {
                     floatMenuOption = new FloatMenuOption(text + ": " + "NoPath".Translate(), null);
                 }
                 else
                 {
-                    var priority = t is Corpse ? MenuOptionPriority.Low : MenuOptionPriority.Default;
-                    var maxAmountToPickup = FoodUtility.GetMaxAmountToPickup(t, pawn, FoodUtility.WillIngestStackCountOf(pawn, t.def, t.GetStatValue(StatDefOf.Nutrition)));
+                    var priority = target is Corpse ? MenuOptionPriority.Low : MenuOptionPriority.Default;
+                    var maxAmountToPickup =
+                        FoodUtility.GetMaxAmountToPickup(target, pawn, FoodUtility.WillIngestStackCountOf(pawn, target.def, target.GetStatValue(StatDefOf.Nutrition)));
                     floatMenuOption = FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(text, delegate
                     {
                         var maxAmountToPickup2 =
-                            FoodUtility.GetMaxAmountToPickup(t, pawn, FoodUtility.WillIngestStackCountOf(pawn, t.def, t.GetStatValue(StatDefOf.Nutrition)));
+                            FoodUtility.GetMaxAmountToPickup(target, pawn, FoodUtility.WillIngestStackCountOf(pawn, target.def, target.GetStatValue(StatDefOf.Nutrition)));
                         if (maxAmountToPickup2 == 0) return;
-                            
-                        t.SetForbidden(false);
-                        var job18 = JobMaker.MakeJob(JobDefOf.Ingest, t);
+
+                        target.SetForbidden(false);
+                        var job18 = JobMaker.MakeJob(JobDefOf.Ingest, target);
                         job18.count = maxAmountToPickup2;
                         pawn.jobs.TryTakeOrderedJob(job18);
-                    }, priority), pawn, t);
+                    }, priority), pawn, target);
                     if (maxAmountToPickup == 0) floatMenuOption.action = null;
                 }
 
@@ -105,14 +104,12 @@ namespace LWM.DeepStorage
 
             if (pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation))
             {
-                foreach (var thing2 in c.GetThingList(pawn.Map))
+                if (target is Corpse corpse && corpse.IsInValidStorage())
                 {
-                    if (!(thing2 is Corpse corpse) || !corpse.IsInValidStorage()) continue;
-                    
                     var priority2 = StoreUtility.CurrentHaulDestinationOf(corpse).GetStoreSettings().Priority;
                     if (!StoreUtility.TryFindBestBetterNonSlotGroupStorageFor(corpse, pawn, pawn.Map, priority2, Faction.OfPlayer, out var haulDestination, true) ||
-                        haulDestination.GetStoreSettings().Priority != priority2 || !(haulDestination is Building_Grave)) continue;
-                    
+                        haulDestination.GetStoreSettings().Priority != priority2 || !(haulDestination is Building_Grave)) return;
+
                     var grave = haulDestination as Building_Grave;
                     string label = "PrioritizeGeneric".Translate("Burying".Translate(), corpse.Label);
                     opts.Add(FloatMenuUtility.DecoratePrioritizedTask(
@@ -248,11 +245,11 @@ namespace LWM.DeepStorage
                     }), pawn, stripTarg) : new FloatMenuOption("CannotStrip".Translate(stripTarg.Thing.LabelCap, stripTarg.Thing) + ": " + "QuestRelated".Translate().CapitalizeFirst(), null)
                     : new FloatMenuOption("CannotStrip".Translate(stripTarg.Thing.LabelCap, stripTarg.Thing) + ": " + "NoPath".Translate(), null)));
 
-            ThingWithComps equipment;
+            ThingWithComps equipment = null;
             if (pawn.equipment != null)
             {
-                var thingList = c.GetThingList(pawn.Map);
-                equipment = thingList.Where(t => t.TryGetComp<CompEquippable>() != null).Cast<ThingWithComps>().FirstOrDefault();
+                if (target.TryGetComp<CompEquippable>() != null)
+                    equipment = (ThingWithComps) target;
 
                 if (equipment != null)
                 {
@@ -312,9 +309,11 @@ namespace LWM.DeepStorage
                 }
             }
 
+            Apparel apparel;
             if (pawn.apparel != null)
             {
-                var apparel = pawn.Map.thingGrid.ThingAt<Apparel>(c);
+                apparel = target as Apparel;
+
                 if (apparel != null)
                 {
                     var item7 = !pawn.CanReach(apparel, PathEndMode.ClosestTouch, Danger.Deadly)
@@ -339,7 +338,7 @@ namespace LWM.DeepStorage
 
             if (pawn.IsFormingCaravan())
             {
-                var item3 = c.GetFirstItem(pawn.Map);
+                var item3 = target;
                 if (item3 != null && item3.def.EverHaulable)
                 {
                     var packTarget = GiveToPackAnimalUtility.UsablePackAnimalWithTheMostFreeSpace(pawn) ?? pawn;
@@ -414,7 +413,7 @@ namespace LWM.DeepStorage
 
             if (!pawn.Map.IsPlayerHome && !pawn.IsFormingCaravan())
             {
-                var item2 = c.GetFirstItem(pawn.Map);
+                var item2 = target;
                 if (item2 != null && item2.def.EverHaulable)
                 {
                     if (!pawn.CanReach(item2, PathEndMode.ClosestTouch, Danger.Deadly))
@@ -468,7 +467,7 @@ namespace LWM.DeepStorage
 
             if (!pawn.Map.IsPlayerHome && !pawn.IsFormingCaravan())
             {
-                var item = c.GetFirstItem(pawn.Map);
+                var item = target;
                 if (item != null && item.def.EverHaulable)
                 {
                     var bestPackAnimal = GiveToPackAnimalUtility.UsablePackAnimalWithTheMostFreeSpace(pawn);
@@ -612,7 +611,7 @@ namespace LWM.DeepStorage
                         job.ignoreDesignations = true;
                         pawn.jobs.TryTakeOrderedJob(job);
                     }, MenuOptionPriority.High), pawn, casket.Thing));
-            opts.AddRange(pawn.Map.thingGrid.ThingsAt(c).SelectMany(item16 => item16.GetFloatMenuOptions(pawn)));
+            opts.AddRange(target.GetFloatMenuOptions(pawn));
 
             void Equip()
             {

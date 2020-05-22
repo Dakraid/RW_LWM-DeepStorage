@@ -68,13 +68,12 @@ namespace LWM.DeepStorage
             if (Mouse.IsOver(entryRect))
                 Widgets.DrawHighlight(entryRect);
 
-            TooltipHandler.TipRegion(entryRect, (TipSignal) thing.def.description);
-
             Texture2D thingIcon;
             try
             {
-                thingIcon = thing.def.uiIcon;
-                GUI.color = thing.def.uiIconColor;
+                var target = thing.GetInnerIfMinified();
+                thingIcon = target.def.uiIcon; 
+                GUI.color = target.def.uiIconColor;
             }
             catch
             {
@@ -89,17 +88,51 @@ namespace LWM.DeepStorage
             GUI.color = Color.white;
             Text.Font = GameFont.Tiny;
             Widgets.Label(graphicRect.RightPart(0.8f).ContractedBy(4f), thing.Label.CapitalizeFirst());
+            TooltipHandler.TipRegion(graphicRect.RightPart(0.8f), (TipSignal) thing.def.description);
             
             var actionRect = entryRect.RightPart(0.1f);
             actionRect.x -= 16;
             
-            var menuIcon = ContentFinder<Texture2D>.Get("UI/Buttons/MainButtons/Menu", true);
-            if (Widgets.ButtonImageFitted(actionRect, menuIcon))
+            if (!opts.NullOrEmpty())
+                opts.Clear();
+            DSGUI_AHLO.AddHumanlikeOrdersForThing(thing, clickPos, pawn, opts);
+            
+            if (opts.Count > 0) 
             {
-                Log.Message("[LWM] Clickity Click!");
+                var menuIcon = ContentFinder<Texture2D>.Get("UI/Buttons/MainButtons/Menu");
+                if (Widgets.ButtonImageFitted(actionRect, menuIcon))
+                {
+                    var floatMenuMap = new FloatMenuMap(opts, pawn.LabelCap, UI.MouseMapPosition()) {givesColonistOrders = true};
+                    Find.WindowStack.Add(floatMenuMap);
+                }
+            }
 
-                var origParams = new object[] {clickPos, pawn, opts};
-                AHlO.Invoke(null, origParams);
+            if (y == 0) return;
+
+            GUI.color = Color.grey;
+            Widgets.DrawLineHorizontal(0.0f, boxHeight * y, inRect.width);
+            GUI.color = Color.white;
+        }
+
+        public static void GenerateOptsListing(
+            Rect inRect,
+            Pawn pawn,
+            Vector3 clickPos,
+            FloatMenuOption opt,
+            int boxHeight,
+            int y)
+        {
+            var entryRect = new Rect(0.0f, boxHeight * y, inRect.width, boxHeight);
+
+            if (Mouse.IsOver(entryRect))
+                Widgets.DrawHighlight(entryRect);
+            
+            GUI.color = Color.white;
+            Text.Font = GameFont.Tiny;
+
+            if (Widgets.ButtonText(entryRect, opt.Label))
+            {
+                //
             }
 
             if (y == 0) return;
