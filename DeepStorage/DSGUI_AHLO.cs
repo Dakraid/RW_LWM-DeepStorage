@@ -13,45 +13,42 @@ namespace LWM.DeepStorage
 {
     public class DSGUI_AHLO
     {
-        private static void AddHumanlikeOrdersForThing(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
+        private static void AddHumanlikeOrders(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
         {
             var c = IntVec3.FromVector3(clickPos);
             if (pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation))
-                foreach (var dest in GenUI.TargetsAt(clickPos, TargetingParameters.ForArrest(pawn), true))
+                foreach (var item8 in GenUI.TargetsAt_NewTemp(clickPos, TargetingParameters.ForArrest(pawn), true))
                 {
-                    var flag = dest.HasThing && dest.Thing is Pawn && ((Pawn) dest.Thing).IsWildMan();
+                    var flag = item8.HasThing && item8.Thing is Pawn && ((Pawn) item8.Thing).IsWildMan();
                     if (pawn.Drafted || flag)
                     {
-                        if (!pawn.CanReach(dest, PathEndMode.OnCell, Danger.Deadly))
+                        if (!pawn.CanReach(item8, PathEndMode.OnCell, Danger.Deadly))
                         {
                             opts.Add(new FloatMenuOption("CannotArrest".Translate() + ": " + "NoPath".Translate().CapitalizeFirst(), null));
                         }
                         else
                         {
-                            var pTarg = (Pawn) dest.Thing;
-                            var action = (Action) (() =>
+                            var pTarg2 = (Pawn) item8.Thing;
+                            Action action = delegate
                             {
-                                var buildingBed = RestUtility.FindBedFor(pTarg, pawn, true, false) ?? RestUtility.FindBedFor(pTarg, pawn, true, false, true);
-                                if (buildingBed == null)
+                                var building_Bed3 = RestUtility.FindBedFor(pTarg2, pawn, true, false);
+                                if (building_Bed3 == null) building_Bed3 = RestUtility.FindBedFor(pTarg2, pawn, true, false, true);
+                                if (building_Bed3 == null)
                                 {
-                                    Messages.Message("CannotArrest".Translate() + ": " + "NoPrisonerBed".Translate(), pTarg, MessageTypeDefOf.RejectInput, false);
+                                    Messages.Message("CannotArrest".Translate() + ": " + "NoPrisonerBed".Translate(), pTarg2, MessageTypeDefOf.RejectInput, false);
                                 }
                                 else
                                 {
-                                    var job = JobMaker.MakeJob(JobDefOf.Arrest, (LocalTargetInfo) pTarg, (LocalTargetInfo) buildingBed);
-                                    job.count = 1;
-                                    pawn.jobs.TryTakeOrderedJob(job);
-                                    if (pTarg.Faction == null || (pTarg.Faction == Faction.OfPlayer || pTarg.Faction.def.hidden) && !pTarg.IsQuestLodger())
-                                        return;
-                                    
-                                    DoModalDialogIfNotKnown(ConceptDefOf.ArrestingCreatesEnemies, Array.Empty<string>());
+                                    var job19 = JobMaker.MakeJob(JobDefOf.Arrest, pTarg2, building_Bed3);
+                                    job19.count = 1;
+                                    pawn.jobs.TryTakeOrderedJob(job19);
+                                    if (pTarg2.Faction != null && (pTarg2.Faction != Faction.OfPlayer && !pTarg2.Faction.def.hidden || pTarg2.IsQuestLodger()))
+                                        DoModalDialogIfNotKnown(ConceptDefOf.ArrestingCreatesEnemies);
                                 }
-                            });
+                            };
                             opts.Add(FloatMenuUtility.DecoratePrioritizedTask(
-                                new FloatMenuOption(
-                                    "TryToArrest".Translate((NamedArgument) dest.Thing.LabelCap, (NamedArgument) dest.Thing,
-                                        (NamedArgument) pTarg.GetAcceptArrestChance(pawn).ToStringPercent()), action, MenuOptionPriority.High, null, dest.Thing), pawn,
-                                (LocalTargetInfo) pTarg));
+                                new FloatMenuOption("TryToArrest".Translate(item8.Thing.LabelCap, item8.Thing, pTarg2.GetAcceptArrestChance(pawn).ToStringPercent()), action,
+                                    MenuOptionPriority.High, null, item8.Thing), pawn, pTarg2));
                         }
                     }
                 }
@@ -61,421 +58,378 @@ namespace LWM.DeepStorage
                 var t = thing;
                 if (t.def.ingestible != null && pawn.RaceProps.CanEverEat(t) && t.IngestibleNow)
                 {
-                    var label = !t.def.ingestible.ingestCommandString.NullOrEmpty()
+                    var text = !t.def.ingestible.ingestCommandString.NullOrEmpty()
                         ? string.Format(t.def.ingestible.ingestCommandString, t.LabelShort)
-                        : (string) "ConsumeThing".Translate((NamedArgument) t.LabelShort, (NamedArgument) t);
-                    if (!t.IsSociallyProper(pawn))
-                        label = label + ": " + "ReservedForPrisoners".Translate().CapitalizeFirst();
+                        : (string) "ConsumeThing".Translate(t.LabelShort, t);
+                    if (!t.IsSociallyProper(pawn)) text = text + ": " + "ReservedForPrisoners".Translate().CapitalizeFirst();
                     FloatMenuOption floatMenuOption;
                     if (t.def.IsNonMedicalDrug && pawn.IsTeetotaler())
                     {
-                        floatMenuOption = new FloatMenuOption(label + ": " + TraitDefOf.DrugDesire.DataAtDegree(-1).LabelCap, null);
+                        floatMenuOption = new FloatMenuOption(text + ": " + TraitDefOf.DrugDesire.DataAtDegree(-1).LabelCap, null);
                     }
                     else if (FoodUtility.InappropriateForTitle(t.def, pawn, true))
                     {
-                        floatMenuOption = new FloatMenuOption(
-                            label + ": " + "FoodBelowTitleRequirements".Translate((NamedArgument) pawn.royalty.MostSeniorTitle.def.GetLabelFor(pawn)), null);
+                        floatMenuOption = new FloatMenuOption(text + ": " + "FoodBelowTitleRequirements".Translate(pawn.royalty.MostSeniorTitle.def.GetLabelFor(pawn)), null);
                     }
-                    else if (!pawn.CanReach((LocalTargetInfo) t, PathEndMode.OnCell, Danger.Deadly))
+                    else if (!pawn.CanReach(t, PathEndMode.OnCell, Danger.Deadly))
                     {
-                        floatMenuOption = new FloatMenuOption(label + ": " + "NoPath".Translate(), null);
+                        floatMenuOption = new FloatMenuOption(text + ": " + "NoPath".Translate(), null);
                     }
                     else
                     {
                         var priority = t is Corpse ? MenuOptionPriority.Low : MenuOptionPriority.Default;
-                        var maxAmountToPickup1 = FoodUtility.GetMaxAmountToPickup(t, pawn, FoodUtility.WillIngestStackCountOf(pawn, t.def, t.GetStatValue(StatDefOf.Nutrition)));
-                        floatMenuOption = FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(label, () =>
+                        var maxAmountToPickup = FoodUtility.GetMaxAmountToPickup(t, pawn, FoodUtility.WillIngestStackCountOf(pawn, t.def, t.GetStatValue(StatDefOf.Nutrition)));
+                        floatMenuOption = FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(text, delegate
                         {
-                            var maxAmountToPickup = FoodUtility.GetMaxAmountToPickup(t, pawn, FoodUtility.WillIngestStackCountOf(pawn, t.def, t.GetStatValue(StatDefOf.Nutrition)));
-                            if (maxAmountToPickup == 0)
-                                return;
-                            t.SetForbidden(false);
-                            var job = JobMaker.MakeJob(JobDefOf.Ingest, (LocalTargetInfo) t);
-                            job.count = maxAmountToPickup;
-                            pawn.jobs.TryTakeOrderedJob(job);
-                        }, priority), pawn, (LocalTargetInfo) t);
-                        if (maxAmountToPickup1 == 0)
-                            floatMenuOption.action = null;
+                            var maxAmountToPickup2 =
+                                FoodUtility.GetMaxAmountToPickup(t, pawn, FoodUtility.WillIngestStackCountOf(pawn, t.def, t.GetStatValue(StatDefOf.Nutrition)));
+                            if (maxAmountToPickup2 != 0)
+                            {
+                                t.SetForbidden(false);
+                                var job18 = JobMaker.MakeJob(JobDefOf.Ingest, t);
+                                job18.count = maxAmountToPickup2;
+                                pawn.jobs.TryTakeOrderedJob(job18);
+                            }
+                        }, priority), pawn, t);
+                        if (maxAmountToPickup == 0) floatMenuOption.action = null;
                     }
 
                     opts.Add(floatMenuOption);
                 }
             }
 
-            foreach (var dest in GenUI.TargetsAt(clickPos, TargetingParameters.ForQuestPawnsWhoWillJoinColony(pawn), true))
+            foreach (var item9 in GenUI.TargetsAt_NewTemp(clickPos, TargetingParameters.ForQuestPawnsWhoWillJoinColony(pawn), true))
             {
-                var toHelpPawn = (Pawn) dest.Thing;
-                var floatMenuOption = pawn.CanReach(dest, PathEndMode.Touch, Danger.Deadly)
+                var toHelpPawn = (Pawn) item9.Thing;
+                var item4 = pawn.CanReach(item9, PathEndMode.Touch, Danger.Deadly)
                     ? FloatMenuUtility.DecoratePrioritizedTask(
                         new FloatMenuOption(toHelpPawn.IsPrisoner ? "FreePrisoner".Translate() : "OfferHelp".Translate(),
-                            () => pawn.jobs.TryTakeOrderedJob(JobMaker.MakeJob(JobDefOf.OfferHelp, (LocalTargetInfo) toHelpPawn)), MenuOptionPriority.RescueOrCapture, null,
-                            toHelpPawn), pawn, (LocalTargetInfo) toHelpPawn)
+                            delegate { pawn.jobs.TryTakeOrderedJob(JobMaker.MakeJob(JobDefOf.OfferHelp, toHelpPawn)); }, MenuOptionPriority.RescueOrCapture, null, toHelpPawn),
+                        pawn, toHelpPawn)
                     : new FloatMenuOption("CannotGoNoPath".Translate(), null);
-                opts.Add(floatMenuOption);
+                opts.Add(item4);
             }
 
             if (pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation))
             {
-                foreach (var thing in c.GetThingList(pawn.Map))
+                foreach (var thing2 in c.GetThingList(pawn.Map))
                 {
-                    var corpse = thing as Corpse;
+                    var corpse = thing2 as Corpse;
                     if (corpse != null && corpse.IsInValidStorage())
                     {
-                        var priority = StoreUtility.CurrentHaulDestinationOf(corpse).GetStoreSettings().Priority;
-                        IHaulDestination haulDestination;
-                        if (StoreUtility.TryFindBestBetterNonSlotGroupStorageFor(corpse, pawn, pawn.Map, priority, Faction.OfPlayer, out haulDestination, true) &&
-                            haulDestination.GetStoreSettings().Priority == priority && haulDestination is Building_Grave)
+                        var priority2 = StoreUtility.CurrentHaulDestinationOf(corpse).GetStoreSettings().Priority;
+                        if (StoreUtility.TryFindBestBetterNonSlotGroupStorageFor(corpse, pawn, pawn.Map, priority2, Faction.OfPlayer, out var haulDestination, true) &&
+                            haulDestination.GetStoreSettings().Priority == priority2 && haulDestination is Building_Grave)
                         {
                             var grave = haulDestination as Building_Grave;
-                            var label = (string) "PrioritizeGeneric".Translate("Burying".Translate(), (NamedArgument) corpse.Label);
+                            string label = "PrioritizeGeneric".Translate("Burying".Translate(), corpse.Label);
                             opts.Add(FloatMenuUtility.DecoratePrioritizedTask(
-                                new FloatMenuOption(label, () => pawn.jobs.TryTakeOrderedJob(HaulAIUtility.HaulToContainerJob(pawn, corpse, grave))), pawn,
+                                new FloatMenuOption(label, delegate { pawn.jobs.TryTakeOrderedJob(HaulAIUtility.HaulToContainerJob(pawn, corpse, grave)); }), pawn,
                                 new LocalTargetInfo(corpse)));
                         }
                     }
                 }
 
-                foreach (var localTargetInfo in GenUI.TargetsAt(clickPos, TargetingParameters.ForRescue(pawn), true))
+                foreach (var item10 in GenUI.TargetsAt_NewTemp(clickPos, TargetingParameters.ForRescue(pawn), true))
                 {
-                    var victim = (Pawn) localTargetInfo.Thing;
-                    if (!victim.InBed() && pawn.CanReserveAndReach((LocalTargetInfo) victim, PathEndMode.OnCell, Danger.Deadly, 1, -1, null, true) &&
-                        !victim.mindState.WillJoinColonyIfRescued)
+                    var victim3 = (Pawn) item10.Thing;
+                    if (!victim3.InBed() && pawn.CanReserveAndReach(victim3, PathEndMode.OnCell, Danger.Deadly, 1, -1, null, true) && !victim3.mindState.WillJoinColonyIfRescued)
                     {
-                        if (!victim.IsPrisonerOfColony && !victim.InMentalState &&
-                            (victim.Faction == Faction.OfPlayer || victim.Faction == null || !victim.Faction.HostileTo(Faction.OfPlayer)))
-                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("Rescue".Translate((NamedArgument) victim.LabelCap, (NamedArgument) victim), () =>
+                        if (!victim3.IsPrisonerOfColony && !victim3.InMentalState &&
+                            (victim3.Faction == Faction.OfPlayer || victim3.Faction == null || !victim3.Faction.HostileTo(Faction.OfPlayer)))
+                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("Rescue".Translate(victim3.LabelCap, victim3), delegate
                             {
-                                var buildingBed = RestUtility.FindBedFor(victim, pawn, false, false) ?? RestUtility.FindBedFor(victim, pawn, false, false, true);
-                                if (buildingBed == null)
+                                var building_Bed2 = RestUtility.FindBedFor(victim3, pawn, false, false);
+                                if (building_Bed2 == null) building_Bed2 = RestUtility.FindBedFor(victim3, pawn, false, false, true);
+                                if (building_Bed2 == null)
                                 {
-                                    Messages.Message(
-                                        "CannotRescue".Translate() + ": " +
-                                        (!victim.RaceProps.Animal ? (string) "NoNonPrisonerBed".Translate() : (string) "NoAnimalBed".Translate()), victim,
-                                        MessageTypeDefOf.RejectInput, false);
+                                    var t3 = !victim3.RaceProps.Animal ? (string) "NoNonPrisonerBed".Translate() : (string) "NoAnimalBed".Translate();
+                                    Messages.Message("CannotRescue".Translate() + ": " + t3, victim3, MessageTypeDefOf.RejectInput, false);
                                 }
                                 else
                                 {
-                                    var job = JobMaker.MakeJob(JobDefOf.Rescue, (LocalTargetInfo) victim, (LocalTargetInfo) buildingBed);
-                                    job.count = 1;
-                                    pawn.jobs.TryTakeOrderedJob(job);
+                                    var job17 = JobMaker.MakeJob(JobDefOf.Rescue, victim3, building_Bed2);
+                                    job17.count = 1;
+                                    pawn.jobs.TryTakeOrderedJob(job17);
                                     PlayerKnowledgeDatabase.KnowledgeDemonstrated(ConceptDefOf.Rescuing, KnowledgeAmount.Total);
                                 }
-                            }, MenuOptionPriority.RescueOrCapture, null, victim), pawn, (LocalTargetInfo) victim));
-                        if (victim.RaceProps.Humanlike && (victim.InMentalState || victim.Faction != Faction.OfPlayer ||
-                                                           victim.Downed && (victim.guilt.IsGuilty || victim.IsPrisonerOfColony)))
+                            }, MenuOptionPriority.RescueOrCapture, null, victim3), pawn, victim3));
+                        if (victim3.RaceProps.Humanlike && (victim3.InMentalState || victim3.Faction != Faction.OfPlayer ||
+                                                            victim3.Downed && (victim3.guilt.IsGuilty || victim3.IsPrisonerOfColony)))
                         {
-                            var taggedString = "Capture".Translate((NamedArgument) victim.LabelCap, (NamedArgument) victim);
-                            if (victim.Faction != null && victim.Faction != Faction.OfPlayer && !victim.Faction.def.hidden && !victim.Faction.HostileTo(Faction.OfPlayer) &&
-                                !victim.IsPrisonerOfColony)
-                                taggedString += ": " + "AngersFaction".Translate().CapitalizeFirst();
-                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(taggedString, () =>
+                            var taggedString = "Capture".Translate(victim3.LabelCap, victim3);
+                            if (victim3.Faction != null && victim3.Faction != Faction.OfPlayer && !victim3.Faction.def.hidden && !victim3.Faction.HostileTo(Faction.OfPlayer) &&
+                                !victim3.IsPrisonerOfColony) taggedString += ": " + "AngersFaction".Translate().CapitalizeFirst();
+                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(taggedString, delegate
                             {
-                                var buildingBed = RestUtility.FindBedFor(victim, pawn, true, false) ?? RestUtility.FindBedFor(victim, pawn, true, false, true);
-                                if (buildingBed == null)
+                                var building_Bed = RestUtility.FindBedFor(victim3, pawn, true, false);
+                                if (building_Bed == null) building_Bed = RestUtility.FindBedFor(victim3, pawn, true, false, true);
+                                if (building_Bed == null)
                                 {
-                                    Messages.Message("CannotCapture".Translate() + ": " + "NoPrisonerBed".Translate(), victim, MessageTypeDefOf.RejectInput, false);
+                                    Messages.Message("CannotCapture".Translate() + ": " + "NoPrisonerBed".Translate(), victim3, MessageTypeDefOf.RejectInput, false);
                                 }
                                 else
                                 {
-                                    var job = JobMaker.MakeJob(JobDefOf.Capture, (LocalTargetInfo) victim, (LocalTargetInfo) buildingBed);
-                                    job.count = 1;
-                                    pawn.jobs.TryTakeOrderedJob(job);
+                                    var job16 = JobMaker.MakeJob(JobDefOf.Capture, victim3, building_Bed);
+                                    job16.count = 1;
+                                    pawn.jobs.TryTakeOrderedJob(job16);
                                     PlayerKnowledgeDatabase.KnowledgeDemonstrated(ConceptDefOf.Capturing, KnowledgeAmount.Total);
-                                    if (victim.Faction == null || victim.Faction == Faction.OfPlayer || victim.Faction.def.hidden || victim.Faction.HostileTo(Faction.OfPlayer) ||
-                                        victim.IsPrisonerOfColony)
-                                        return;
-                                    Messages.Message("MessageCapturingWillAngerFaction".Translate(victim.Named("PAWN")).AdjustedFor(victim), victim, MessageTypeDefOf.CautionInput,
-                                        false);
+                                    if (victim3.Faction != null && victim3.Faction != Faction.OfPlayer && !victim3.Faction.def.hidden &&
+                                        !victim3.Faction.HostileTo(Faction.OfPlayer) && !victim3.IsPrisonerOfColony)
+                                        Messages.Message("MessageCapturingWillAngerFaction".Translate(victim3.Named("PAWN")).AdjustedFor(victim3), victim3,
+                                            MessageTypeDefOf.CautionInput, false);
                                 }
-                            }, MenuOptionPriority.RescueOrCapture, null, victim), pawn, (LocalTargetInfo) victim));
+                            }, MenuOptionPriority.RescueOrCapture, null, victim3), pawn, victim3));
                         }
                     }
                 }
 
-                foreach (var localTargetInfo1 in GenUI.TargetsAt(clickPos, TargetingParameters.ForRescue(pawn), true))
+                foreach (var item11 in GenUI.TargetsAt_NewTemp(clickPos, TargetingParameters.ForRescue(pawn), true))
                 {
-                    var localTargetInfo2 = localTargetInfo1;
-                    var victim = (Pawn) localTargetInfo2.Thing;
-                    if (victim.Downed && pawn.CanReserveAndReach((LocalTargetInfo) victim, PathEndMode.OnCell, Danger.Deadly, 1, -1, null, true) &&
-                        Building_CryptosleepCasket.FindCryptosleepCasketFor(victim, pawn, true) != null)
+                    var localTargetInfo = item11;
+                    var victim2 = (Pawn) localTargetInfo.Thing;
+                    if (victim2.Downed && pawn.CanReserveAndReach(victim2, PathEndMode.OnCell, Danger.Deadly, 1, -1, null, true) &&
+                        Building_CryptosleepCasket.FindCryptosleepCasketFor(victim2, pawn, true) != null)
                     {
-                        var label1 = (string) "CarryToCryptosleepCasket".Translate((NamedArgument) localTargetInfo2.Thing.LabelCap, (NamedArgument) localTargetInfo2.Thing);
+                        string text2 = "CarryToCryptosleepCasket".Translate(localTargetInfo.Thing.LabelCap, localTargetInfo.Thing);
                         var jDef = JobDefOf.CarryToCryptosleepCasket;
-                        var action = (Action) (() =>
+                        Action action2 = delegate
                         {
-                            var cryptosleepCasket = Building_CryptosleepCasket.FindCryptosleepCasketFor(victim, pawn) ??
-                                                    Building_CryptosleepCasket.FindCryptosleepCasketFor(victim, pawn, true);
-                            if (cryptosleepCasket == null)
+                            var building_CryptosleepCasket = Building_CryptosleepCasket.FindCryptosleepCasketFor(victim2, pawn);
+                            if (building_CryptosleepCasket == null) building_CryptosleepCasket = Building_CryptosleepCasket.FindCryptosleepCasketFor(victim2, pawn, true);
+                            if (building_CryptosleepCasket == null)
                             {
-                                Messages.Message("CannotCarryToCryptosleepCasket".Translate() + ": " + "NoCryptosleepCasket".Translate(), victim, MessageTypeDefOf.RejectInput,
+                                Messages.Message("CannotCarryToCryptosleepCasket".Translate() + ": " + "NoCryptosleepCasket".Translate(), victim2, MessageTypeDefOf.RejectInput,
                                     false);
                             }
                             else
                             {
-                                var job = JobMaker.MakeJob(jDef, (LocalTargetInfo) victim, (LocalTargetInfo) cryptosleepCasket);
-                                job.count = 1;
-                                pawn.jobs.TryTakeOrderedJob(job);
+                                var job15 = JobMaker.MakeJob(jDef, victim2, building_CryptosleepCasket);
+                                job15.count = 1;
+                                pawn.jobs.TryTakeOrderedJob(job15);
                             }
-                        });
-                        if (!victim.IsQuestLodger())
+                        };
+                        if (!victim2.IsQuestLodger())
                         {
-                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(label1, action, MenuOptionPriority.Default, null, victim), pawn,
-                                (LocalTargetInfo) victim));
+                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(text2, action2, MenuOptionPriority.Default, null, victim2), pawn, victim2));
                         }
                         else
                         {
-                            var label2 = (string) (label1 + (" (" + "CryptosleepCasketGuestsNotAllowed".Translate() + ")"));
-                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(label2, null, MenuOptionPriority.Default, null, victim), pawn,
-                                (LocalTargetInfo) victim));
+                            text2 += " (" + "CryptosleepCasketGuestsNotAllowed".Translate() + ")";
+                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(text2, null, MenuOptionPriority.Default, null, victim2), pawn, victim2));
                         }
                     }
                 }
 
                 if (ModsConfig.RoyaltyActive)
-                    foreach (var localTargetInfo1 in GenUI.TargetsAt(clickPos, TargetingParameters.ForShuttle(pawn), true))
+                    foreach (var item12 in GenUI.TargetsAt_NewTemp(clickPos, TargetingParameters.ForShuttle(pawn), true))
                     {
-                        var localTargetInfo2 = localTargetInfo1;
+                        var localTargetInfo2 = item12;
                         var victim = (Pawn) localTargetInfo2.Thing;
-                        var validator = (Predicate<Thing>) (thing =>
-                        {
-                            var comp = thing.TryGetComp<CompShuttle>();
-                            return comp != null && comp.IsAllowed(victim);
-                        });
+                        Predicate<Thing> validator = (Thing thing) => thing.TryGetComp<CompShuttle>()?.IsAllowed(victim) ?? false;
                         var shuttleThing = GenClosest.ClosestThingReachable(victim.Position, victim.Map, ThingRequest.ForDef(ThingDefOf.Shuttle), PathEndMode.ClosestTouch,
                             TraverseParms.For(pawn), 9999f, validator);
-                        if (shuttleThing != null && pawn.CanReserveAndReach((LocalTargetInfo) victim, PathEndMode.OnCell, Danger.Deadly, 1, -1, null, true) &&
+                        if (shuttleThing != null && pawn.CanReserveAndReach(victim, PathEndMode.OnCell, Danger.Deadly, 1, -1, null, true) &&
                             !pawn.WorkTypeIsDisabled(WorkTypeDefOf.Hauling))
                         {
-                            var label = (string) "CarryToShuttle".Translate((NamedArgument) localTargetInfo2.Thing);
-                            var action = (Action) (() =>
+                            string label2 = "CarryToShuttle".Translate(localTargetInfo2.Thing);
+                            Action action3 = delegate
                             {
-                                var comp = shuttleThing.TryGetComp<CompShuttle>();
-                                if (!comp.LoadingInProgressOrReadyToLaunch)
-                                    TransporterUtility.InitiateLoading(Gen.YieldSingle(comp.Transporter));
-                                var job = JobMaker.MakeJob(JobDefOf.HaulToTransporter, (LocalTargetInfo) victim, (LocalTargetInfo) shuttleThing);
-                                job.ignoreForbidden = true;
-                                job.count = 1;
-                                pawn.jobs.TryTakeOrderedJob(job);
-                            });
-                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(label, action), pawn, (LocalTargetInfo) victim));
+                                var compShuttle = shuttleThing.TryGetComp<CompShuttle>();
+                                if (!compShuttle.LoadingInProgressOrReadyToLaunch) TransporterUtility.InitiateLoading(Gen.YieldSingle(compShuttle.Transporter));
+                                var job14 = JobMaker.MakeJob(JobDefOf.HaulToTransporter, victim, shuttleThing);
+                                job14.ignoreForbidden = true;
+                                job14.count = 1;
+                                pawn.jobs.TryTakeOrderedJob(job14);
+                            };
+                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(label2, action3), pawn, victim));
                         }
                     }
             }
 
-            foreach (var localTargetInfo in GenUI.TargetsAt(clickPos, TargetingParameters.ForStrip(pawn), true))
+            foreach (var item13 in GenUI.TargetsAt_NewTemp(clickPos, TargetingParameters.ForStrip(pawn), true))
             {
-                var stripTarg = localTargetInfo;
-                var floatMenuOption = pawn.CanReach(stripTarg, PathEndMode.ClosestTouch, Danger.Deadly)
+                var stripTarg = item13;
+                var item5 = pawn.CanReach(stripTarg, PathEndMode.ClosestTouch, Danger.Deadly)
                     ? stripTarg.Pawn == null || !stripTarg.Pawn.HasExtraHomeFaction() ? FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(
-                        "Strip".Translate((NamedArgument) stripTarg.Thing.LabelCap, (NamedArgument) stripTarg.Thing), () =>
+                        "Strip".Translate(stripTarg.Thing.LabelCap, stripTarg.Thing), delegate
                         {
                             stripTarg.Thing.SetForbidden(false, false);
                             pawn.jobs.TryTakeOrderedJob(JobMaker.MakeJob(JobDefOf.Strip, stripTarg));
                         }), pawn, stripTarg) :
-                    new FloatMenuOption(
-                        "CannotStrip".Translate((NamedArgument) stripTarg.Thing.LabelCap, (NamedArgument) stripTarg.Thing) + ": " + "QuestRelated".Translate().CapitalizeFirst(),
-                        null)
-                    : new FloatMenuOption("CannotStrip".Translate((NamedArgument) stripTarg.Thing.LabelCap, (NamedArgument) stripTarg.Thing) + ": " + "NoPath".Translate(), null);
-                opts.Add(floatMenuOption);
+                    new FloatMenuOption("CannotStrip".Translate(stripTarg.Thing.LabelCap, stripTarg.Thing) + ": " + "QuestRelated".Translate().CapitalizeFirst(), null)
+                    : new FloatMenuOption("CannotStrip".Translate(stripTarg.Thing.LabelCap, stripTarg.Thing) + ": " + "NoPath".Translate(), null);
+                opts.Add(item5);
             }
 
+            ThingWithComps equipment;
             if (pawn.equipment != null)
             {
-                var equipment = (ThingWithComps) null;
+                equipment = null;
                 var thingList = c.GetThingList(pawn.Map);
-                for (var index = 0; index < thingList.Count; ++index)
-                    if (thingList[index].TryGetComp<CompEquippable>() != null)
+                for (var i = 0; i < thingList.Count; i++)
+                    if (thingList[i].TryGetComp<CompEquippable>() != null)
                     {
-                        equipment = (ThingWithComps) thingList[index];
+                        equipment = (ThingWithComps) thingList[i];
                         break;
                     }
 
                 if (equipment != null)
                 {
                     var labelShort = equipment.LabelShort;
-                    FloatMenuOption floatMenuOption;
+                    FloatMenuOption item6;
+                    string cantReason;
                     if (equipment.def.IsWeapon && pawn.WorkTagIsDisabled(WorkTags.Violent))
                     {
-                        floatMenuOption = new FloatMenuOption(
-                            "CannotEquip".Translate((NamedArgument) labelShort) + ": " +
-                            "IsIncapableOfViolenceLower".Translate((NamedArgument) pawn.LabelShort, (NamedArgument) pawn), null);
+                        item6 = new FloatMenuOption("CannotEquip".Translate(labelShort) + ": " + "IsIncapableOfViolenceLower".Translate(pawn.LabelShort, pawn), null);
                     }
-                    else if (!pawn.CanReach((LocalTargetInfo) equipment, PathEndMode.ClosestTouch, Danger.Deadly))
+                    else if (!pawn.CanReach(equipment, PathEndMode.ClosestTouch, Danger.Deadly))
                     {
-                        floatMenuOption = new FloatMenuOption("CannotEquip".Translate((NamedArgument) labelShort) + ": " + "NoPath".Translate(), null);
+                        item6 = new FloatMenuOption("CannotEquip".Translate(labelShort) + ": " + "NoPath".Translate(), null);
                     }
                     else if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation))
                     {
-                        floatMenuOption = new FloatMenuOption("CannotEquip".Translate((NamedArgument) labelShort) + ": " + "Incapable".Translate(), null);
+                        item6 = new FloatMenuOption("CannotEquip".Translate(labelShort) + ": " + "Incapable".Translate(), null);
                     }
                     else if (equipment.IsBurning())
                     {
-                        floatMenuOption = new FloatMenuOption("CannotEquip".Translate((NamedArgument) labelShort) + ": " + "BurningLower".Translate(), null);
+                        item6 = new FloatMenuOption("CannotEquip".Translate(labelShort) + ": " + "BurningLower".Translate(), null);
                     }
                     else if (pawn.IsQuestLodger() && !EquipmentUtility.QuestLodgerCanEquip(equipment, pawn))
                     {
-                        floatMenuOption = new FloatMenuOption("CannotEquip".Translate((NamedArgument) labelShort) + ": " + "QuestRelated".Translate().CapitalizeFirst(), null);
+                        item6 = new FloatMenuOption("CannotEquip".Translate(labelShort) + ": " + "QuestRelated".Translate().CapitalizeFirst(), null);
+                    }
+                    else if (!EquipmentUtility.CanEquip(equipment, pawn, out cantReason))
+                    {
+                        item6 = new FloatMenuOption("CannotEquip".Translate(labelShort) + ": " + cantReason.CapitalizeFirst(), null);
                     }
                     else
                     {
-                        string cantReason;
-                        if (!EquipmentUtility.CanEquip(equipment, pawn, out cantReason))
+                        string text3 = "Equip".Translate(labelShort);
+                        if (equipment.def.IsRangedWeapon && pawn.story != null && pawn.story.traits.HasTrait(TraitDefOf.Brawler)) text3 += " " + "EquipWarningBrawler".Translate();
+                        item6 = FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(text3, delegate
                         {
-                            floatMenuOption = new FloatMenuOption("CannotEquip".Translate((NamedArgument) labelShort) + ": " + cantReason.CapitalizeFirst(), null);
-                        }
-                        else
-                        {
-                            var label = (string) "Equip".Translate((NamedArgument) labelShort);
-                            if (equipment.def.IsRangedWeapon && pawn.story != null && pawn.story.traits.HasTrait(TraitDefOf.Brawler))
-                                label = label + (" " + "EquipWarningBrawler".Translate());
-                            floatMenuOption = FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(label, () =>
+                            var equipWeaponConfirmationDialogText = ThingRequiringRoyalPermissionUtility.GetEquipWeaponConfirmationDialogText(equipment, pawn);
+                            var compBladelinkWeapon = equipment.TryGetComp<CompBladelinkWeapon>();
+                            if (compBladelinkWeapon != null && compBladelinkWeapon.bondedPawn != pawn)
                             {
-                                var confirmationDialogText = ThingRequiringRoyalPermissionUtility.GetEquipWeaponConfirmationDialogText(equipment, pawn);
-                                var comp = equipment.TryGetComp<CompBladelinkWeapon>();
-                                if (comp != null && comp.bondedPawn != pawn)
-                                {
-                                    if (!confirmationDialogText.NullOrEmpty())
-                                        confirmationDialogText += "\n\n";
-                                    confirmationDialogText += "BladelinkEquipWarning".Translate();
-                                }
+                                if (!equipWeaponConfirmationDialogText.NullOrEmpty()) equipWeaponConfirmationDialogText += "\n\n";
+                                equipWeaponConfirmationDialogText += "BladelinkEquipWarning".Translate();
+                            }
 
-                                if (!confirmationDialogText.NullOrEmpty())
-                                {
-                                    confirmationDialogText += "\n\n" + "RoyalWeaponEquipConfirmation".Translate();
-                                    Find.WindowStack.Add(new Dialog_MessageBox(confirmationDialogText, "Yes".Translate(), () => Equip(), "No".Translate()));
-                                }
-                                else
-                                {
-                                    Equip();
-                                }
-                            }, MenuOptionPriority.High), pawn, (LocalTargetInfo) equipment);
-                        }
+                            if (!equipWeaponConfirmationDialogText.NullOrEmpty())
+                            {
+                                equipWeaponConfirmationDialogText += "\n\n" + "RoyalWeaponEquipConfirmation".Translate();
+                                Find.WindowStack.Add(new Dialog_MessageBox(equipWeaponConfirmationDialogText, "Yes".Translate(), delegate { Equip(); }, "No".Translate()));
+                            }
+                            else
+                            {
+                                Equip();
+                            }
+                        }, MenuOptionPriority.High), pawn, equipment);
                     }
 
-                    opts.Add(floatMenuOption);
-                }
-
-                void Equip()
-                {
-                    equipment.SetForbidden(false);
-                    pawn.jobs.TryTakeOrderedJob(JobMaker.MakeJob(JobDefOf.Equip, (LocalTargetInfo) equipment));
-                    MoteMaker.MakeStaticMote(equipment.DrawPos, equipment.Map, ThingDefOf.Mote_FeedbackEquip);
-                    PlayerKnowledgeDatabase.KnowledgeDemonstrated(ConceptDefOf.EquippingWeapons, KnowledgeAmount.Total);
+                    opts.Add(item6);
                 }
             }
 
-            TaggedString taggedString1;
             if (pawn.apparel != null)
             {
                 var apparel = pawn.Map.thingGrid.ThingAt<Apparel>(c);
                 if (apparel != null)
                 {
-                    FloatMenuOption floatMenuOption;
-                    if (!pawn.CanReach((LocalTargetInfo) apparel, PathEndMode.ClosestTouch, Danger.Deadly))
-                    {
-                        floatMenuOption = new FloatMenuOption("CannotWear".Translate((NamedArgument) apparel.Label, (NamedArgument) apparel) + ": " + "NoPath".Translate(), null);
-                    }
-                    else if (apparel.IsBurning())
-                    {
-                        floatMenuOption = new FloatMenuOption("CannotWear".Translate((NamedArgument) apparel.Label, (NamedArgument) apparel) + ": " + "Burning".Translate(), null);
-                    }
-                    else if (pawn.apparel.WouldReplaceLockedApparel(apparel))
-                    {
-                        var taggedString2 = "CannotWear".Translate((NamedArgument) apparel.Label, (NamedArgument) apparel) + ": ";
-                        taggedString1 = "WouldReplaceLockedApparel".Translate();
-                        var taggedString3 = taggedString1.CapitalizeFirst();
-                        floatMenuOption = new FloatMenuOption(taggedString2 + taggedString3, null);
-                    }
-                    else
-                    {
-                        string cantReason;
-                        floatMenuOption = ApparelUtility.HasPartsToWear(pawn, apparel.def)
-                            ? EquipmentUtility.CanEquip(apparel, pawn, out cantReason) ? FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(
-                                "ForceWear".Translate((NamedArgument) apparel.LabelShort, (NamedArgument) apparel), () =>
-                                {
-                                    apparel.SetForbidden(false);
-                                    pawn.jobs.TryTakeOrderedJob(JobMaker.MakeJob(JobDefOf.Wear, (LocalTargetInfo) apparel));
-                                }, MenuOptionPriority.High), pawn, (LocalTargetInfo) apparel) :
-                            new FloatMenuOption("CannotWear".Translate((NamedArgument) apparel.Label, (NamedArgument) apparel) + ": " + cantReason, null)
-                            : new FloatMenuOption(
-                                "CannotWear".Translate((NamedArgument) apparel.Label, (NamedArgument) apparel) + ": " + "CannotWearBecauseOfMissingBodyParts".Translate(), null);
-                    }
-
-                    opts.Add(floatMenuOption);
+                    string cantReason2;
+                    var item7 = !pawn.CanReach(apparel, PathEndMode.ClosestTouch, Danger.Deadly)
+                        ?
+                        new FloatMenuOption("CannotWear".Translate(apparel.Label, apparel) + ": " + "NoPath".Translate(), null)
+                        : apparel.IsBurning()
+                            ? new FloatMenuOption("CannotWear".Translate(apparel.Label, apparel) + ": " + "Burning".Translate(), null)
+                            : pawn.apparel.WouldReplaceLockedApparel(apparel)
+                                ? new FloatMenuOption("CannotWear".Translate(apparel.Label, apparel) + ": " + "WouldReplaceLockedApparel".Translate().CapitalizeFirst(), null)
+                                : !ApparelUtility.HasPartsToWear(pawn, apparel.def)
+                                    ? new FloatMenuOption("CannotWear".Translate(apparel.Label, apparel) + ": " + "CannotWearBecauseOfMissingBodyParts".Translate(), null)
+                                    : EquipmentUtility.CanEquip(apparel, pawn, out cantReason2)
+                                        ? FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("ForceWear".Translate(apparel.LabelShort, apparel), delegate
+                                        {
+                                            apparel.SetForbidden(false);
+                                            var job13 = JobMaker.MakeJob(JobDefOf.Wear, apparel);
+                                            pawn.jobs.TryTakeOrderedJob(job13);
+                                        }, MenuOptionPriority.High), pawn, apparel)
+                                        : new FloatMenuOption("CannotWear".Translate(apparel.Label, apparel) + ": " + cantReason2, null);
+                    opts.Add(item7);
                 }
             }
 
             if (pawn.IsFormingCaravan())
             {
-                var item = c.GetFirstItem(pawn.Map);
-                if (item != null && item.def.EverHaulable)
+                var item3 = c.GetFirstItem(pawn.Map);
+                if (item3 != null && item3.def.EverHaulable)
                 {
                     var packTarget = GiveToPackAnimalUtility.UsablePackAnimalWithTheMostFreeSpace(pawn) ?? pawn;
                     var jobDef = packTarget == pawn ? JobDefOf.TakeInventory : JobDefOf.GiveToPackAnimal;
-                    if (!pawn.CanReach((LocalTargetInfo) item, PathEndMode.ClosestTouch, Danger.Deadly))
+                    if (!pawn.CanReach(item3, PathEndMode.ClosestTouch, Danger.Deadly))
                     {
-                        opts.Add(new FloatMenuOption("CannotLoadIntoCaravan".Translate((NamedArgument) item.Label, (NamedArgument) item) + ": " + "NoPath".Translate(), null));
+                        opts.Add(new FloatMenuOption("CannotLoadIntoCaravan".Translate(item3.Label, item3) + ": " + "NoPath".Translate(), null));
                     }
-                    else if (MassUtility.WillBeOverEncumberedAfterPickingUp(packTarget, item, 1))
+                    else if (MassUtility.WillBeOverEncumberedAfterPickingUp(packTarget, item3, 1))
                     {
-                        opts.Add(new FloatMenuOption("CannotLoadIntoCaravan".Translate((NamedArgument) item.Label, (NamedArgument) item) + ": " + "TooHeavy".Translate(), null));
+                        opts.Add(new FloatMenuOption("CannotLoadIntoCaravan".Translate(item3.Label, item3) + ": " + "TooHeavy".Translate(), null));
                     }
                     else
                     {
-                        var capacityLeft = CaravanFormingUtility.CapacityLeft((LordJob_FormAndSendCaravan) pawn.GetLord().LordJob);
-                        if (item.stackCount == 1)
+                        var lordJob = (LordJob_FormAndSendCaravan) pawn.GetLord().LordJob;
+                        var capacityLeft = CaravanFormingUtility.CapacityLeft(lordJob);
+                        if (item3.stackCount == 1)
                         {
-                            var capacityLeft1 = capacityLeft - item.GetStatValue(StatDefOf.Mass);
+                            var capacityLeft2 = capacityLeft - item3.GetStatValue(StatDefOf.Mass);
                             opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(
-                                CaravanFormingUtility.AppendOverweightInfo("LoadIntoCaravan".Translate((NamedArgument) item.Label, (NamedArgument) item), capacityLeft1), () =>
+                                CaravanFormingUtility.AppendOverweightInfo("LoadIntoCaravan".Translate(item3.Label, item3), capacityLeft2), delegate
                                 {
-                                    item.SetForbidden(false, false);
-                                    var job = JobMaker.MakeJob(jobDef, (LocalTargetInfo) item);
-                                    job.count = 1;
-                                    job.checkEncumbrance = packTarget == pawn;
-                                    pawn.jobs.TryTakeOrderedJob(job);
-                                }, MenuOptionPriority.High), pawn, (LocalTargetInfo) item));
+                                    item3.SetForbidden(false, false);
+                                    var job12 = JobMaker.MakeJob(jobDef, item3);
+                                    job12.count = 1;
+                                    job12.checkEncumbrance = packTarget == pawn;
+                                    pawn.jobs.TryTakeOrderedJob(job12);
+                                }, MenuOptionPriority.High), pawn, item3));
                         }
                         else
                         {
-                            if (MassUtility.WillBeOverEncumberedAfterPickingUp(packTarget, item, item.stackCount))
+                            if (MassUtility.WillBeOverEncumberedAfterPickingUp(packTarget, item3, item3.stackCount))
                             {
-                                opts.Add(new FloatMenuOption("CannotLoadIntoCaravanAll".Translate((NamedArgument) item.Label, (NamedArgument) item) + ": " + "TooHeavy".Translate(),
-                                    null));
+                                opts.Add(new FloatMenuOption("CannotLoadIntoCaravanAll".Translate(item3.Label, item3) + ": " + "TooHeavy".Translate(), null));
                             }
                             else
                             {
-                                var capacityLeft1 = capacityLeft - item.stackCount * item.GetStatValue(StatDefOf.Mass);
+                                var capacityLeft3 = capacityLeft - (float) item3.stackCount * item3.GetStatValue(StatDefOf.Mass);
                                 opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(
-                                    CaravanFormingUtility.AppendOverweightInfo("LoadIntoCaravanAll".Translate((NamedArgument) item.Label, (NamedArgument) item), capacityLeft1),
-                                    () =>
+                                    CaravanFormingUtility.AppendOverweightInfo("LoadIntoCaravanAll".Translate(item3.Label, item3), capacityLeft3), delegate
                                     {
-                                        item.SetForbidden(false, false);
-                                        var job = JobMaker.MakeJob(jobDef, (LocalTargetInfo) item);
-                                        job.count = item.stackCount;
-                                        job.checkEncumbrance = packTarget == pawn;
-                                        pawn.jobs.TryTakeOrderedJob(job);
-                                    }, MenuOptionPriority.High), pawn, (LocalTargetInfo) item));
+                                        item3.SetForbidden(false, false);
+                                        var job11 = JobMaker.MakeJob(jobDef, item3);
+                                        job11.count = item3.stackCount;
+                                        job11.checkEncumbrance = packTarget == pawn;
+                                        pawn.jobs.TryTakeOrderedJob(job11);
+                                    }, MenuOptionPriority.High), pawn, item3));
                             }
 
-                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(
-                                    "LoadIntoCaravanSome".Translate((NamedArgument) item.LabelNoCount, (NamedArgument) item), () => Find.WindowStack.Add(new Dialog_Slider(val =>
-                                    {
-                                        float capacityLeft = capacityLeft - val * item.GetStatValue(StatDefOf.Mass);
-                                        return CaravanFormingUtility.AppendOverweightInfo(
-                                            string.Format("LoadIntoCaravanCount".Translate((NamedArgument) item.LabelNoCount, (NamedArgument) item), val), capacityLeft);
-                                    }, 1, Mathf.Min(MassUtility.CountToPickUpUntilOverEncumbered(packTarget, item), item.stackCount), closure_1 ?? (closure_1 =
-                                        (Action<int>) (count =>
-                                        {
-                                            item.SetForbidden(false, false);
-                                            var job = JobMaker.MakeJob(jobDef,
-                                                (LocalTargetInfo) item);
-                                            job.count = count;
-                                            job.checkEncumbrance =
-                                                packTarget == pawn;
-                                            pawn.jobs.TryTakeOrderedJob(job);
-                                        })))), MenuOptionPriority.High), pawn,
-                                (LocalTargetInfo) item));
+                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("LoadIntoCaravanSome".Translate(item3.LabelNoCount, item3), delegate
+                            {
+                                var to3 = Mathf.Min(MassUtility.CountToPickUpUntilOverEncumbered(packTarget, item3), item3.stackCount);
+                                var window3 = new Dialog_Slider(delegate(int val)
+                                {
+                                    var capacityLeft4 = capacityLeft - (float) val * item3.GetStatValue(StatDefOf.Mass);
+                                    return CaravanFormingUtility.AppendOverweightInfo(string.Format("LoadIntoCaravanCount".Translate(item3.LabelNoCount, item3), val),
+                                        capacityLeft4);
+                                }, 1, to3, delegate(int count)
+                                {
+                                    item3.SetForbidden(false, false);
+                                    var job10 = JobMaker.MakeJob(jobDef, item3);
+                                    job10.count = count;
+                                    job10.checkEncumbrance = packTarget == pawn;
+                                    pawn.jobs.TryTakeOrderedJob(job10);
+                                });
+                                Find.WindowStack.Add(window3);
+                            }, MenuOptionPriority.High), pawn, item3));
                         }
                     }
                 }
@@ -483,51 +437,54 @@ namespace LWM.DeepStorage
 
             if (!pawn.Map.IsPlayerHome && !pawn.IsFormingCaravan())
             {
-                var item = c.GetFirstItem(pawn.Map);
-                if (item != null && item.def.EverHaulable)
+                var item2 = c.GetFirstItem(pawn.Map);
+                if (item2 != null && item2.def.EverHaulable)
                 {
-                    if (!pawn.CanReach((LocalTargetInfo) item, PathEndMode.ClosestTouch, Danger.Deadly))
+                    if (!pawn.CanReach(item2, PathEndMode.ClosestTouch, Danger.Deadly))
                     {
-                        opts.Add(new FloatMenuOption("CannotPickUp".Translate((NamedArgument) item.Label, (NamedArgument) item) + ": " + "NoPath".Translate(), null));
+                        opts.Add(new FloatMenuOption("CannotPickUp".Translate(item2.Label, item2) + ": " + "NoPath".Translate(), null));
                     }
-                    else if (MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, item, 1))
+                    else if (MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, item2, 1))
                     {
-                        opts.Add(new FloatMenuOption("CannotPickUp".Translate((NamedArgument) item.Label, (NamedArgument) item) + ": " + "TooHeavy".Translate(), null));
+                        opts.Add(new FloatMenuOption("CannotPickUp".Translate(item2.Label, item2) + ": " + "TooHeavy".Translate(), null));
                     }
-                    else if (item.stackCount == 1)
+                    else if (item2.stackCount == 1)
                     {
-                        opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("PickUp".Translate((NamedArgument) item.Label, (NamedArgument) item), () =>
+                        opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("PickUp".Translate(item2.Label, item2), delegate
                         {
-                            item.SetForbidden(false, false);
-                            var job = JobMaker.MakeJob(JobDefOf.TakeInventory, (LocalTargetInfo) item);
-                            job.count = 1;
-                            job.checkEncumbrance = true;
-                            pawn.jobs.TryTakeOrderedJob(job);
-                        }, MenuOptionPriority.High), pawn, (LocalTargetInfo) item));
+                            item2.SetForbidden(false, false);
+                            var job9 = JobMaker.MakeJob(JobDefOf.TakeInventory, item2);
+                            job9.count = 1;
+                            job9.checkEncumbrance = true;
+                            pawn.jobs.TryTakeOrderedJob(job9);
+                        }, MenuOptionPriority.High), pawn, item2));
                     }
                     else
                     {
-                        if (MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, item, item.stackCount))
-                            opts.Add(new FloatMenuOption("CannotPickUpAll".Translate((NamedArgument) item.Label, (NamedArgument) item) + ": " + "TooHeavy".Translate(), null));
+                        if (MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, item2, item2.stackCount))
+                            opts.Add(new FloatMenuOption("CannotPickUpAll".Translate(item2.Label, item2) + ": " + "TooHeavy".Translate(), null));
                         else
-                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("PickUpAll".Translate((NamedArgument) item.Label, (NamedArgument) item), () =>
+                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("PickUpAll".Translate(item2.Label, item2), delegate
                             {
-                                item.SetForbidden(false, false);
-                                var job = JobMaker.MakeJob(JobDefOf.TakeInventory, (LocalTargetInfo) item);
-                                job.count = item.stackCount;
-                                job.checkEncumbrance = true;
-                                pawn.jobs.TryTakeOrderedJob(job);
-                            }, MenuOptionPriority.High), pawn, (LocalTargetInfo) item));
-                        opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("PickUpSome".Translate((NamedArgument) item.LabelNoCount, (NamedArgument) item), () =>
-                            Find.WindowStack.Add(new Dialog_Slider("PickUpCount".Translate((NamedArgument) item.LabelNoCount, (NamedArgument) item), 1,
-                                Mathf.Min(MassUtility.CountToPickUpUntilOverEncumbered(pawn, item), item.stackCount), count =>
-                                {
-                                    item.SetForbidden(false, false);
-                                    var job = JobMaker.MakeJob(JobDefOf.TakeInventory, (LocalTargetInfo) item);
-                                    job.count = count;
-                                    job.checkEncumbrance = true;
-                                    pawn.jobs.TryTakeOrderedJob(job);
-                                })), MenuOptionPriority.High), pawn, (LocalTargetInfo) item));
+                                item2.SetForbidden(false, false);
+                                var job8 = JobMaker.MakeJob(JobDefOf.TakeInventory, item2);
+                                job8.count = item2.stackCount;
+                                job8.checkEncumbrance = true;
+                                pawn.jobs.TryTakeOrderedJob(job8);
+                            }, MenuOptionPriority.High), pawn, item2));
+                        opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("PickUpSome".Translate(item2.LabelNoCount, item2), delegate
+                        {
+                            var to2 = Mathf.Min(MassUtility.CountToPickUpUntilOverEncumbered(pawn, item2), item2.stackCount);
+                            var window2 = new Dialog_Slider("PickUpCount".Translate(item2.LabelNoCount, item2), 1, to2, delegate(int count)
+                            {
+                                item2.SetForbidden(false, false);
+                                var job7 = JobMaker.MakeJob(JobDefOf.TakeInventory, item2);
+                                job7.count = count;
+                                job7.checkEncumbrance = true;
+                                pawn.jobs.TryTakeOrderedJob(job7);
+                            });
+                            Find.WindowStack.Add(window2);
+                        }, MenuOptionPriority.High), pawn, item2));
                     }
                 }
             }
@@ -540,114 +497,100 @@ namespace LWM.DeepStorage
                     var bestPackAnimal = GiveToPackAnimalUtility.UsablePackAnimalWithTheMostFreeSpace(pawn);
                     if (bestPackAnimal != null)
                     {
-                        if (!pawn.CanReach((LocalTargetInfo) item, PathEndMode.ClosestTouch, Danger.Deadly))
+                        if (!pawn.CanReach(item, PathEndMode.ClosestTouch, Danger.Deadly))
                         {
-                            opts.Add(new FloatMenuOption("CannotGiveToPackAnimal".Translate((NamedArgument) item.Label, (NamedArgument) item) + ": " + "NoPath".Translate(), null));
+                            opts.Add(new FloatMenuOption("CannotGiveToPackAnimal".Translate(item.Label, item) + ": " + "NoPath".Translate(), null));
                         }
                         else if (MassUtility.WillBeOverEncumberedAfterPickingUp(bestPackAnimal, item, 1))
                         {
-                            opts.Add(
-                                new FloatMenuOption("CannotGiveToPackAnimal".Translate((NamedArgument) item.Label, (NamedArgument) item) + ": " + "TooHeavy".Translate(), null));
+                            opts.Add(new FloatMenuOption("CannotGiveToPackAnimal".Translate(item.Label, item) + ": " + "TooHeavy".Translate(), null));
                         }
                         else if (item.stackCount == 1)
                         {
-                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("GiveToPackAnimal".Translate((NamedArgument) item.Label, (NamedArgument) item),
-                                () =>
-                                {
-                                    item.SetForbidden(false, false);
-                                    var job = JobMaker.MakeJob(JobDefOf.GiveToPackAnimal, (LocalTargetInfo) item);
-                                    job.count = 1;
-                                    pawn.jobs.TryTakeOrderedJob(job);
-                                }, MenuOptionPriority.High), pawn, (LocalTargetInfo) item));
+                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("GiveToPackAnimal".Translate(item.Label, item), delegate
+                            {
+                                item.SetForbidden(false, false);
+                                var job6 = JobMaker.MakeJob(JobDefOf.GiveToPackAnimal, item);
+                                job6.count = 1;
+                                pawn.jobs.TryTakeOrderedJob(job6);
+                            }, MenuOptionPriority.High), pawn, item));
                         }
                         else
                         {
                             if (MassUtility.WillBeOverEncumberedAfterPickingUp(bestPackAnimal, item, item.stackCount))
-                                opts.Add(new FloatMenuOption(
-                                    "CannotGiveToPackAnimalAll".Translate((NamedArgument) item.Label, (NamedArgument) item) + ": " + "TooHeavy".Translate(), null));
+                                opts.Add(new FloatMenuOption("CannotGiveToPackAnimalAll".Translate(item.Label, item) + ": " + "TooHeavy".Translate(), null));
                             else
-                                opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(
-                                    "GiveToPackAnimalAll".Translate((NamedArgument) item.Label, (NamedArgument) item), () =>
-                                    {
-                                        item.SetForbidden(false, false);
-                                        var job = JobMaker.MakeJob(JobDefOf.GiveToPackAnimal, (LocalTargetInfo) item);
-                                        job.count = item.stackCount;
-                                        pawn.jobs.TryTakeOrderedJob(job);
-                                    }, MenuOptionPriority.High), pawn, (LocalTargetInfo) item));
-                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(
-                                    "GiveToPackAnimalSome".Translate((NamedArgument) item.LabelNoCount, (NamedArgument) item), () =>
-                                        Find.WindowStack.Add(new Dialog_Slider("GiveToPackAnimalCount".Translate((NamedArgument) item.LabelNoCount, (NamedArgument) item), 1,
-                                            Mathf.Min(MassUtility.CountToPickUpUntilOverEncumbered(bestPackAnimal, item), item.stackCount), closure_4 ?? (closure_4 =
-                                                (Action<int>) (count =>
-                                                {
-                                                    item.SetForbidden(false, false);
-                                                    var job = JobMaker.MakeJob(
-                                                        JobDefOf.GiveToPackAnimal,
-                                                        (LocalTargetInfo) item);
-                                                    job.count = count;
-                                                    pawn.jobs.TryTakeOrderedJob(job);
-                                                })))), MenuOptionPriority.High), pawn,
-                                (LocalTargetInfo) item));
+                                opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("GiveToPackAnimalAll".Translate(item.Label, item), delegate
+                                {
+                                    item.SetForbidden(false, false);
+                                    var job5 = JobMaker.MakeJob(JobDefOf.GiveToPackAnimal, item);
+                                    job5.count = item.stackCount;
+                                    pawn.jobs.TryTakeOrderedJob(job5);
+                                }, MenuOptionPriority.High), pawn, item));
+                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("GiveToPackAnimalSome".Translate(item.LabelNoCount, item), delegate
+                            {
+                                var to = Mathf.Min(MassUtility.CountToPickUpUntilOverEncumbered(bestPackAnimal, item), item.stackCount);
+                                var window = new Dialog_Slider("GiveToPackAnimalCount".Translate(item.LabelNoCount, item), 1, to, delegate(int count)
+                                {
+                                    item.SetForbidden(false, false);
+                                    var job4 = JobMaker.MakeJob(JobDefOf.GiveToPackAnimal, item);
+                                    job4.count = count;
+                                    pawn.jobs.TryTakeOrderedJob(job4);
+                                });
+                                Find.WindowStack.Add(window);
+                            }, MenuOptionPriority.High), pawn, item));
                         }
                     }
                 }
             }
 
             if (!pawn.Map.IsPlayerHome && pawn.Map.exitMapGrid.MapUsesExitGrid)
-                foreach (var target in GenUI.TargetsAt(clickPos, TargetingParameters.ForRescue(pawn), true))
+                foreach (var item14 in GenUI.TargetsAt_NewTemp(clickPos, TargetingParameters.ForRescue(pawn), true))
                 {
-                    var p = (Pawn) target.Thing;
+                    var p = (Pawn) item14.Thing;
                     if (p.Faction == Faction.OfPlayer || p.IsPrisonerOfColony || CaravanUtility.ShouldAutoCapture(p, Faction.OfPlayer))
                     {
-                        if (!pawn.CanReach((LocalTargetInfo) p, PathEndMode.ClosestTouch, Danger.Deadly))
+                        IntVec3 exitSpot;
+                        if (!pawn.CanReach(p, PathEndMode.ClosestTouch, Danger.Deadly))
                         {
-                            opts.Add(new FloatMenuOption("CannotCarryToExit".Translate((NamedArgument) p.Label, (NamedArgument) p) + ": " + "NoPath".Translate(), null));
+                            opts.Add(new FloatMenuOption("CannotCarryToExit".Translate(p.Label, p) + ": " + "NoPath".Translate(), null));
+                        }
+                        else if (!RCellFinder.TryFindBestExitSpot(pawn, out exitSpot))
+                        {
+                            opts.Add(new FloatMenuOption("CannotCarryToExit".Translate(p.Label, p) + ": " + "NoPath".Translate(), null));
                         }
                         else
                         {
-                            IntVec3 exitSpot;
-                            if (!RCellFinder.TryFindBestExitSpot(pawn, out exitSpot))
+                            var taggedString2 = p.Faction == Faction.OfPlayer || p.IsPrisonerOfColony
+                                ? "CarryToExit".Translate(p.Label, p)
+                                : "CarryToExitAndCapture".Translate(p.Label, p);
+                            opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(taggedString2, delegate
                             {
-                                opts.Add(new FloatMenuOption("CannotCarryToExit".Translate((NamedArgument) p.Label, (NamedArgument) p) + ": " + "NoPath".Translate(), null));
-                            }
-                            else
-                            {
-                                var taggedString2 = p.Faction == Faction.OfPlayer || p.IsPrisonerOfColony
-                                    ? "CarryToExit".Translate((NamedArgument) p.Label, (NamedArgument) p)
-                                    : "CarryToExitAndCapture".Translate((NamedArgument) p.Label, (NamedArgument) p);
-                                opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption(taggedString2, () =>
-                                {
-                                    var job = JobMaker.MakeJob(JobDefOf.CarryDownedPawnToExit, (LocalTargetInfo) p, exitSpot);
-                                    job.count = 1;
-                                    job.failIfCantJoinOrCreateCaravan = true;
-                                    pawn.jobs.TryTakeOrderedJob(job);
-                                }, MenuOptionPriority.High), pawn, target));
-                            }
+                                var job3 = JobMaker.MakeJob(JobDefOf.CarryDownedPawnToExit, p, exitSpot);
+                                job3.count = 1;
+                                job3.failIfCantJoinOrCreateCaravan = true;
+                                pawn.jobs.TryTakeOrderedJob(job3);
+                            }, MenuOptionPriority.High), pawn, item14));
                         }
                     }
                 }
 
-            if (pawn.equipment != null && pawn.equipment.Primary != null && GenUI.TargetsAt(clickPos, TargetingParameters.ForSelf(pawn), true).Any())
+            if (pawn.equipment != null && pawn.equipment.Primary != null && GenUI.TargetsAt_NewTemp(clickPos, TargetingParameters.ForSelf(pawn), true).Any())
             {
                 if (pawn.IsQuestLodger())
                 {
-                    var floatMenuOptionList = opts;
-                    var taggedString2 = "CannotDrop".Translate((NamedArgument) pawn.equipment.Primary.Label, (NamedArgument) pawn.equipment.Primary) + ": ";
-                    taggedString1 = "QuestRelated".Translate();
-                    var taggedString3 = taggedString1.CapitalizeFirst();
-                    var floatMenuOption = new FloatMenuOption(taggedString2 + taggedString3, null);
-                    floatMenuOptionList.Add(floatMenuOption);
+                    opts.Add(new FloatMenuOption("CannotDrop".Translate(pawn.equipment.Primary.Label, pawn.equipment.Primary) + ": " + "QuestRelated".Translate().CapitalizeFirst(),
+                        null));
                 }
                 else
                 {
-                    var action = (Action) (() => pawn.jobs.TryTakeOrderedJob(JobMaker.MakeJob(JobDefOf.DropEquipment, (LocalTargetInfo) pawn.equipment.Primary)));
-                    opts.Add(new FloatMenuOption("Drop".Translate((NamedArgument) pawn.equipment.Primary.Label, (NamedArgument) pawn.equipment.Primary), action,
-                        MenuOptionPriority.Default, null, pawn));
+                    Action action4 = delegate { pawn.jobs.TryTakeOrderedJob(JobMaker.MakeJob(JobDefOf.DropEquipment, pawn.equipment.Primary)); };
+                    opts.Add(new FloatMenuOption("Drop".Translate(pawn.equipment.Primary.Label, pawn.equipment.Primary), action4, MenuOptionPriority.Default, null, pawn));
                 }
             }
 
-            foreach (var dest in GenUI.TargetsAt(clickPos, TargetingParameters.ForTrade(), true))
-                if (!pawn.CanReach(dest, PathEndMode.OnCell, Danger.Deadly))
+            foreach (var item15 in GenUI.TargetsAt_NewTemp(clickPos, TargetingParameters.ForTrade(), true))
+                if (!pawn.CanReach(item15, PathEndMode.OnCell, Danger.Deadly))
                 {
                     opts.Add(new FloatMenuOption("CannotTrade".Translate() + ": " + "NoPath".Translate(), null));
                 }
@@ -655,47 +598,50 @@ namespace LWM.DeepStorage
                 {
                     opts.Add(new FloatMenuOption("CannotPrioritizeWorkTypeDisabled".Translate(SkillDefOf.Social.LabelCap), null));
                 }
-                else if (!pawn.CanTradeWith(dest.Thing.Faction, ((Pawn) dest.Thing).TraderKind))
+                else if (!pawn.CanTradeWith(((Pawn) item15.Thing).Faction, ((Pawn) item15.Thing).TraderKind))
                 {
                     opts.Add(new FloatMenuOption("CannotTradeMissingTitleAbility".Translate(), null));
                 }
                 else
                 {
-                    var pTarg = (Pawn) dest.Thing;
-                    var action = (Action) (() =>
+                    var pTarg = (Pawn) item15.Thing;
+                    Action action5 = delegate
                     {
-                        var job = JobMaker.MakeJob(JobDefOf.TradeWithPawn, (LocalTargetInfo) pTarg);
-                        job.playerForced = true;
-                        pawn.jobs.TryTakeOrderedJob(job);
+                        var job2 = JobMaker.MakeJob(JobDefOf.TradeWithPawn, pTarg);
+                        job2.playerForced = true;
+                        pawn.jobs.TryTakeOrderedJob(job2);
                         PlayerKnowledgeDatabase.KnowledgeDemonstrated(ConceptDefOf.InteractingWithTraders, KnowledgeAmount.Total);
-                    });
-                    var str = "";
-                    if (pTarg.Faction != null)
-                        str = " (" + pTarg.Faction.Name + ")";
+                    };
+                    var t2 = "";
+                    if (pTarg.Faction != null) t2 = " (" + pTarg.Faction.Name + ")";
                     opts.Add(FloatMenuUtility.DecoratePrioritizedTask(
-                        new FloatMenuOption("TradeWith".Translate((NamedArgument) (pTarg.LabelShort + ", " + pTarg.TraderKind.label)) + str, action,
-                            MenuOptionPriority.InitiateSocial, null, dest.Thing), pawn, (LocalTargetInfo) pTarg));
+                        new FloatMenuOption("TradeWith".Translate(pTarg.LabelShort + ", " + pTarg.TraderKind.label) + t2, action5, MenuOptionPriority.InitiateSocial, null,
+                            item15.Thing), pawn, pTarg));
                 }
 
-            foreach (var localTargetInfo in GenUI.TargetsAt(clickPos, TargetingParameters.ForOpen(pawn), true))
-            {
-                var casket = localTargetInfo;
+            foreach (var casket in GenUI.TargetsAt_NewTemp(clickPos, TargetingParameters.ForOpen(pawn), true))
                 if (!pawn.CanReach(casket, PathEndMode.OnCell, Danger.Deadly))
-                    opts.Add(new FloatMenuOption("CannotOpen".Translate((NamedArgument) casket.Thing) + ": " + "NoPath".Translate(), null));
+                    opts.Add(new FloatMenuOption("CannotOpen".Translate(casket.Thing) + ": " + "NoPath".Translate(), null));
                 else if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation))
-                    opts.Add(new FloatMenuOption("CannotOpen".Translate((NamedArgument) casket.Thing) + ": " + "Incapable".Translate(), null));
+                    opts.Add(new FloatMenuOption("CannotOpen".Translate(casket.Thing) + ": " + "Incapable".Translate(), null));
                 else if (casket.Thing.Map.designationManager.DesignationOn(casket.Thing, DesignationDefOf.Open) == null)
-                    opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("Open".Translate((NamedArgument) casket.Thing), () =>
+                    opts.Add(FloatMenuUtility.DecoratePrioritizedTask(new FloatMenuOption("Open".Translate(casket.Thing), delegate
                     {
-                        var job = JobMaker.MakeJob(JobDefOf.Open, (LocalTargetInfo) casket.Thing);
+                        var job = JobMaker.MakeJob(JobDefOf.Open, casket.Thing);
                         job.ignoreDesignations = true;
                         pawn.jobs.TryTakeOrderedJob(job);
-                    }, MenuOptionPriority.High), pawn, (LocalTargetInfo) casket.Thing));
-            }
+                    }, MenuOptionPriority.High), pawn, casket.Thing));
+            foreach (var item16 in pawn.Map.thingGrid.ThingsAt(c))
+            foreach (var floatMenuOption2 in item16.GetFloatMenuOptions(pawn))
+                opts.Add(floatMenuOption2);
 
-            foreach (var thing in pawn.Map.thingGrid.ThingsAt(c))
-            foreach (var floatMenuOption in thing.GetFloatMenuOptions(pawn))
-                opts.Add(floatMenuOption);
+            void Equip()
+            {
+                equipment.SetForbidden(false);
+                pawn.jobs.TryTakeOrderedJob(JobMaker.MakeJob(JobDefOf.Equip, equipment));
+                MoteMaker.MakeStaticMote(equipment.DrawPos, equipment.Map, ThingDefOf.Mote_FeedbackEquip);
+                PlayerKnowledgeDatabase.KnowledgeDemonstrated(ConceptDefOf.EquippingWeapons, KnowledgeAmount.Total);
+            }
         }
     }
 }
