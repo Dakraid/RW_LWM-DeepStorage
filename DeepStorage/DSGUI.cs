@@ -13,6 +13,12 @@ namespace LWM.DeepStorage
         {
             public static bool Create(Vector3 clickPosition, Pawn pawn, List<FloatMenuOption> opts)
             {
+                if (Find.WindowStack.IsOpen(typeof(DSGUI_ListModal)))
+                    return false;
+                
+                if (!opts.NullOrEmpty())
+                    opts.Clear();
+                
                 var c = IntVec3.FromVector3(clickPosition);
 
                 if ((c.GetSlotGroup(pawn.Map)?.parent as ThingWithComps)?.AllComps
@@ -20,9 +26,6 @@ namespace LWM.DeepStorage
                     return false;
 
                 var thingList = c.GetThingList(pawn.Map);
-
-                if (!opts.NullOrEmpty())
-                    opts.Clear();
                 
                 Find.WindowStack.Add(new DSGUI_ListModal(pawn, thingList, clickPosition, opts));
                 return true;

@@ -44,7 +44,7 @@ namespace LWM.DeepStorage
         [HarmonyPriority(Priority.First)]
         public static bool Prefix(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
         {
-            return Patch_FloatMenuMakerMap.Prefix(clickPos, IntVec3.Invalid, pawn, opts);
+            return Settings.useDeepStorageNewRightClick ? Patch_FloatMenuMakerMap.NewContextMenu(clickPos, IntVec3.Invalid, pawn, opts) : Patch_FloatMenuMakerMap.OldContextMenu(clickPos, IntVec3.Invalid, pawn, opts);
         }
 
         [HarmonyPriority(Priority.Last)]
@@ -72,19 +72,19 @@ namespace LWM.DeepStorage
             BindingFlags.SetField |
             BindingFlags.NonPublic);
 
-        // We have to run as Prefix, because we need to intercept the incoming List.
-        public static bool Prefix(Vector3 clickPosition, IntVec3 c, Pawn pawn, List<FloatMenuOption> opts)
-        {
-            if (Settings.useDeepStorageNewRightClick)
-            {
-                if (Find.WindowStack.IsOpen(typeof(DSGUI_ListModal))) return true;
-                
-                if (!opts.NullOrEmpty())
-                    opts.Clear();
-                
-                return DSGUI.ContextMenuStorage.Create(clickPosition, pawn, opts);
-            }
 
+        public static bool NewContextMenu(Vector3 clickPosition, IntVec3 c, Pawn pawn, List<FloatMenuOption> opts)
+        {
+            if (DSGUI.ContextMenuStorage.Create(clickPosition, pawn, opts))
+                return true;
+            
+            realList.Clear();
+            return false;
+        }
+        
+        // We have to run as Prefix, because we need to intercept the incoming List.
+        public static bool OldContextMenu(Vector3 clickPosition, IntVec3 c, Pawn pawn, List<FloatMenuOption> opts)
+        {
             if (failsafe++ > 500) runningPatchLogic = false;
             if (runningPatchLogic) return true;
             
@@ -109,7 +109,6 @@ namespace LWM.DeepStorage
             runningPatchLogic = true;
 
             // TODO: get default set of menus and tidy them away somehow?  This seems to be unnecessary so far.
-            /************* Move all things away **************/
             // ThingsListAt:
             var workingThingList = c.GetThingList(pawn.Map);
             var origThingList = new List<Thing>(workingThingList);
@@ -138,7 +137,6 @@ namespace LWM.DeepStorage
                 SetPosition(localTargetInfo.Thing, IntVec3.Invalid);
             }
 
-            /*****************  Do magic ****************/
             var origParams = new object[] {clickPosition, pawn, opts};
             foreach (var k in origPositions)
             {
@@ -158,11 +156,11 @@ namespace LWM.DeepStorage
                 workingThingList.Remove(t);
             }
 
-            /************ Cleanup: Put everything back! ***********/
             workingThingList.Clear();
             workingThingList.AddRange(origThingList);
             foreach (var t in origPositions) SetPosition(t.Key, t.Value);
             runningPatchLogic = false;
+
             realList.Clear();
             foreach (var m in opts) realList.Add(m); // got to store it in case anything adjusts it in a different Postfix
             return false;
@@ -170,8 +168,6 @@ namespace LWM.DeepStorage
 
         public static void Postfix(Vector3 clickPosition, Pawn pawn, List<FloatMenuOption> opts)
         {
-            if (Settings.useDeepStorageNewRightClick) return;
-
             if (runningPatchLogic) return;
             if (realList.Count == 0) return; // incidentally breaks out of logic here in case not in a DSU
 
@@ -182,7 +178,7 @@ namespace LWM.DeepStorage
 
         /******************* Utility Functions *******************/
         // Allow directly setting Position of things.  And setting it back.
-        public static void SetPosition(Thing t, IntVec3 p)
+        private static void SetPosition(Thing t, IntVec3 p)
         {
             fieldPosition.SetValue(t, p);
         }

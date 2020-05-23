@@ -10,9 +10,6 @@ namespace LWM.DeepStorage
 {
     public class DSGUI_Util
     {
-        private static readonly MethodInfo AHlO = typeof(FloatMenuMakerMap).GetMethod("AddHumanlikeOrders",
-            BindingFlags.Static | BindingFlags.NonPublic);
-
         // Credits to Dubwise for this awesome function
         public static bool InputField(
             string name,
@@ -26,6 +23,7 @@ namespace LWM.DeepStorage
         {
             if (buff == null)
                 buff = "";
+            
             var rect1 = rect;
             if (icon != null)
             {
@@ -63,7 +61,7 @@ namespace LWM.DeepStorage
             int boxHeight,
             int y)
         {
-            var entryRect = new Rect(0.0f, boxHeight * y, inRect.width, boxHeight);
+            var entryRect = new Rect(0.0f, boxHeight * y, inRect.width, boxHeight).ContractedBy(2f);
 
             if (Mouse.IsOver(entryRect))
                 Widgets.DrawHighlight(entryRect);
@@ -84,17 +82,27 @@ namespace LWM.DeepStorage
             // We keep the LeftPart for the future, but right now it doesn't do anything
             var graphicRect = entryRect.LeftPart(0.9f);
             graphicRect.width -= 16;
-            Widgets.DrawTextureFitted(graphicRect.LeftPart(0.2f), thingIcon, 1f);
+            Widgets.DrawTextureFitted(graphicRect.LeftPart(0.15f).ContractedBy(2f), thingIcon, 1f);
+            TooltipHandler.TipRegion(graphicRect.RightPart(0.85f), (TipSignal) thing.def.description);
+            
             GUI.color = Color.white;
             Text.Font = GameFont.Tiny;
-            Widgets.Label(graphicRect.RightPart(0.8f).ContractedBy(4f), thing.Label.CapitalizeFirst());
-            TooltipHandler.TipRegion(graphicRect.RightPart(0.8f), (TipSignal) thing.def.description);
+            Text.Anchor = TextAnchor.MiddleCenter;
+            Widgets.Label(graphicRect.RightPart(0.85f), thing.Label.CapitalizeFirst());
+            Text.Anchor = TextAnchor.UpperLeft;
+            if (Widgets.ButtonInvisible(graphicRect.RightPart(0.85f).ContractedBy(2f)))
+            {
+                Find.Selector.ClearSelection();
+                Find.Selector.Select(thing);
+                Find.WindowStack.TryRemove(typeof(DSGUI_ListModal));
+            }
             
             var actionRect = entryRect.RightPart(0.1f);
             actionRect.x -= 16;
             
             if (!opts.NullOrEmpty())
                 opts.Clear();
+            
             DSGUI_AHLO.AddHumanlikeOrdersForThing(thing, clickPos, pawn, opts);
             
             if (opts.Count > 0) 
@@ -102,7 +110,7 @@ namespace LWM.DeepStorage
                 var menuIcon = ContentFinder<Texture2D>.Get("UI/Buttons/MainButtons/Menu");
                 if (Widgets.ButtonImageFitted(actionRect, menuIcon))
                 {
-                    var floatMenuMap = new FloatMenuMap(opts, pawn.LabelCap, UI.MouseMapPosition()) {givesColonistOrders = true};
+                    var floatMenuMap = new FloatMenuMap(opts, "Orders", UI.MouseMapPosition()) {givesColonistOrders = true};
                     Find.WindowStack.Add(floatMenuMap);
                 }
             }

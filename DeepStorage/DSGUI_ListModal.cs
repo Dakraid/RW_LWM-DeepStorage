@@ -11,7 +11,7 @@ namespace LWM.DeepStorage
         private const int boxHeight = 32;
 
         private static readonly Vector2 defaultScreenSize = new Vector2(1920, 1080);
-        private static readonly Vector2 modalSize = new Vector2(400, 480);
+        private static readonly Vector2 modalSize = new Vector2(360, 480);
 
         private static Vector2 scrollPosition;
         private static float RecipesScrollHeight;
@@ -26,6 +26,7 @@ namespace LWM.DeepStorage
         {
             closeOnClickedOutside = true;
             doCloseButton = true;
+            //doCloseX = true;
             resizeable = true;
             draggable = true;
 
@@ -46,8 +47,6 @@ namespace LWM.DeepStorage
         
         public override void DoWindowContents(Rect inRect)
         {
-            inRect.height = Math.Max(inRect.height, 240);
-            inRect.width = Math.Max(inRect.width, 200);
             // UpdateMouse();
             var innerRect = inRect;
             innerRect.height -= 48f;
@@ -65,7 +64,7 @@ namespace LWM.DeepStorage
                 searchString = "";
             GUI.EndGroup();
             
-            var scrollRect = innerRect.ContractedBy(4);
+            var scrollRect = innerRect;
             scrollRect.height -= 56f;
             scrollRect.y += 48f;
             var listRect = new Rect(0.0f, 0.0f, scrollRect.width, RecipesScrollHeight);
@@ -73,7 +72,7 @@ namespace LWM.DeepStorage
             Widgets.BeginScrollView(scrollRect, ref scrollPosition, listRect);
             GUI.BeginGroup(listRect);
             var y = 0;
-                
+            
             foreach (var thing in thingList.Where(thing => searchString.NullOrEmpty() || thing.Label.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 try

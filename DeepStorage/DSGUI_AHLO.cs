@@ -15,6 +15,7 @@ namespace LWM.DeepStorage
     public class DSGUI_AHLO
     {
         [UsedImplicitly]
+        // ReSharper disable once FunctionComplexityOverflow
         public static void AddHumanlikeOrdersForThing(Thing target, Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
         {
             // var c = IntVec3.FromVector3(clickPos);
