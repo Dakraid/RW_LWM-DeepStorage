@@ -10,48 +10,6 @@ namespace LWM.DeepStorage
 {
     public class DSGUI_Util
     {
-        // Credits to Dubwise for this awesome function
-        public static bool InputField(
-            string name,
-            Rect rect,
-            ref string buff,
-            Texture icon = null,
-            int max = 999,
-            bool readOnly = false,
-            bool forceFocus = false,
-            bool ShowName = false)
-        {
-            if (buff == null)
-                buff = "";
-            
-            var rect1 = rect;
-            if (icon != null)
-            {
-                var outerRect = rect;
-                outerRect.width = outerRect.height;
-                Widgets.DrawTextureFitted(outerRect, icon, 1f);
-                rect1.width -= outerRect.width;
-                rect1.x += outerRect.width;
-            }
-
-            if (ShowName)
-            {
-                Text.Anchor = TextAnchor.MiddleCenter;
-                Widgets.Label(rect.LeftPart(0.2f), name);
-                Text.Anchor = TextAnchor.UpperLeft;
-                rect1 = rect.RightPart(0.8f);
-            }
-
-            GUI.SetNextControlName(name);
-            buff = GUI.TextField(rect1, buff, max, Text.CurTextAreaStyle);
-            var flag = GUI.GetNameOfFocusedControl() == name;
-            if (!flag & forceFocus)
-                GUI.FocusControl(name);
-            if (((!Input.GetMouseButtonDown(0) ? 0 : !Mouse.IsOver(rect1) ? 1 : 0) & (flag ? 1 : 0)) != 0)
-                GUI.FocusControl(null);
-            return flag;
-        }
-
         public static void GenerateListing(
             Rect inRect,
             Pawn pawn,
@@ -61,10 +19,7 @@ namespace LWM.DeepStorage
             int boxHeight,
             int y)
         {
-            var entryRect = new Rect(0.0f, boxHeight * y, inRect.width, boxHeight).ContractedBy(2f);
-
-            if (Mouse.IsOver(entryRect))
-                Widgets.DrawHighlight(entryRect);
+            var entryRect = new Rect(0.0f, boxHeight * y, inRect.width, boxHeight);
 
             Texture2D thingIcon;
             try
@@ -84,18 +39,17 @@ namespace LWM.DeepStorage
             graphicRect.width -= 16;
             Widgets.DrawTextureFitted(graphicRect.LeftPart(0.15f).ContractedBy(2f), thingIcon, 1f);
             TooltipHandler.TipRegion(graphicRect.RightPart(0.85f), (TipSignal) thing.def.description);
-            
-            GUI.color = Color.white;
-            Text.Font = GameFont.Tiny;
-            Text.Anchor = TextAnchor.MiddleCenter;
-            Widgets.Label(graphicRect.RightPart(0.85f), thing.Label.CapitalizeFirst());
-            Text.Anchor = TextAnchor.UpperLeft;
-            if (Widgets.ButtonInvisible(graphicRect.RightPart(0.85f).ContractedBy(2f)))
+            if (DSGUI.Elements.ButtonInvisibleLabeled(Color.white, GameFont.Small, graphicRect.RightPart(0.85f), thing.Label.CapitalizeFirst()))
             {
                 Find.Selector.ClearSelection();
                 Find.Selector.Select(thing);
                 Find.WindowStack.TryRemove(typeof(DSGUI_ListModal));
             }
+            
+            if (Mouse.IsOver(graphicRect))
+                Widgets.DrawHighlight(graphicRect);
+            
+            DSGUI.Elements.SeparatorVertical(0.0f, graphicRect.width, inRect.height);
             
             var actionRect = entryRect.RightPart(0.1f);
             actionRect.x -= 16;
@@ -108,18 +62,19 @@ namespace LWM.DeepStorage
             if (opts.Count > 0) 
             {
                 var menuIcon = ContentFinder<Texture2D>.Get("UI/Buttons/MainButtons/Menu");
-                if (Widgets.ButtonImageFitted(actionRect, menuIcon))
+                if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, 2f))
                 {
                     var floatMenuMap = new FloatMenuMap(opts, "Orders", UI.MouseMapPosition()) {givesColonistOrders = true};
                     Find.WindowStack.Add(floatMenuMap);
                 }
             }
-
+            
+            if (Mouse.IsOver(actionRect))
+                Widgets.DrawHighlight(actionRect);
+            
             if (y == 0) return;
-
-            GUI.color = Color.grey;
-            Widgets.DrawLineHorizontal(0.0f, boxHeight * y, inRect.width);
-            GUI.color = Color.white;
+            
+            DSGUI.Elements.SeparatorHorizontal(0f, boxHeight * y, inRect.width);
         }
 
         public static void GenerateOptsListing(

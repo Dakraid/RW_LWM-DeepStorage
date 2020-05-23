@@ -7,7 +7,7 @@ using Verse;
 
 namespace LWM.DeepStorage
 {
-    public class DSGUI
+    public partial class DSGUI
     {
         public class ContextMenuStorage
         {
@@ -15,9 +15,6 @@ namespace LWM.DeepStorage
             {
                 if (Find.WindowStack.IsOpen(typeof(DSGUI_ListModal)))
                     return false;
-                
-                if (!opts.NullOrEmpty())
-                    opts.Clear();
                 
                 var c = IntVec3.FromVector3(clickPosition);
 

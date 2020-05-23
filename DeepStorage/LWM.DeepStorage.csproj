@@ -111,6 +111,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DSGUI_AHLO.cs" />
+    <Compile Include="DSGUI_Elements.cs" />
     <Compile Include="DSGUI_ListModal.cs" />
     <Compile Include="DSGUI_SubMenuModal.cs" />
     <Compile Include="DSGUI_Util.cs" />

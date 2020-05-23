@@ -16,6 +16,7 @@ namespace LWM.DeepStorage
         private static Vector2 scrollPosition;
         private static float RecipesScrollHeight;
         private static string searchString;
+        private static float searchClearPadding = 16f;
         
         private static Vector3 cpos;
         private static Pawn pawn;
@@ -25,8 +26,7 @@ namespace LWM.DeepStorage
         public DSGUI_ListModal(Pawn p, List<Thing> lt, Vector3 pos, List<FloatMenuOption> op)
         {
             closeOnClickedOutside = true;
-            doCloseButton = true;
-            //doCloseX = true;
+            doCloseX = true;
             resizeable = true;
             draggable = true;
 
@@ -39,7 +39,7 @@ namespace LWM.DeepStorage
             pawn = p;
             opts = op;
             
-            lt.RemoveAll(t => t.def.category != ThingCategory.Item);
+            lt.RemoveAll(t => t.def.category != ThingCategory.Item || t is Mote);
             thingList = lt;
         }
 
@@ -47,31 +47,39 @@ namespace LWM.DeepStorage
         
         public override void DoWindowContents(Rect inRect)
         {
-            // UpdateMouse();
+            var y = 0;
             var innerRect = inRect;
-            innerRect.height -= 48f;
+            innerRect.y += 8f;
+            innerRect.height -= 16f;       
             
             // Search
             var searchRect = innerRect;
-            GUI.BeginGroup(searchRect);
+            searchRect.y += 399f;
+            
+            searchRect.x += 8f;
             searchRect.height = 28f;
-            searchRect.width -= 30f;
-            DSGUI_Util.InputField("Search", searchRect, ref searchString);
+            searchRect.width -= 40f + searchClearPadding; // 16f for padding of 8f on each side + 28f for the clear button
+            
+            DSGUI.Elements.InputField("Search", searchRect, ref searchString);
+
+            searchRect.x = searchRect.width + 6f + searchClearPadding;
+            searchRect.width = 28f;
             Text.Anchor = TextAnchor.MiddleLeft;
-            searchRect.x = searchRect.xMax;
-            searchRect.width = 30f;
             if (Widgets.ButtonImageFitted(searchRect, Widgets.CheckboxOffTex))
                 searchString = "";
-            GUI.EndGroup();
-            
+
+            // Scrollable List
             var scrollRect = innerRect;
-            scrollRect.height -= 56f;
-            scrollRect.y += 48f;
+            scrollRect.y += 3f;
+            scrollRect.x += 8f;
+            scrollRect.height -= 49f;
+            scrollRect.width -= 16f;
+            
             var listRect = new Rect(0.0f, 0.0f, scrollRect.width, RecipesScrollHeight);
+            
             Widgets.DrawBox(scrollRect);
             Widgets.BeginScrollView(scrollRect, ref scrollPosition, listRect);
             GUI.BeginGroup(listRect);
-            var y = 0;
             
             foreach (var thing in thingList.Where(thing => searchString.NullOrEmpty() || thing.Label.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0))
             {
@@ -88,11 +96,12 @@ namespace LWM.DeepStorage
 
                 ++y;
             }
-
+            
             RecipesScrollHeight = boxHeight * y;
+            
             GUI.EndGroup();
             Widgets.EndScrollView();
-
+            
             Text.Font = GameFont.Medium;
             Text.Anchor = TextAnchor.UpperLeft;
         }
