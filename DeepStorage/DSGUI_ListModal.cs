@@ -25,7 +25,7 @@ namespace LWM.DeepStorage
         private static Pawn pawn;
         private static List<Thing> thingList;
         private static List<FloatMenuOption> opts;
-        private static List<DSGUI_ListItem> rows;
+        private readonly List<DSGUI_ListItem> rows = new List<DSGUI_ListItem>();
 
         public DSGUI_ListModal(Pawn p, List<Thing> lt, Vector3 pos, List<FloatMenuOption> op)
         {
@@ -47,10 +47,19 @@ namespace LWM.DeepStorage
             rows.Clear();
         }
 
+        /* Destructor, not sure if useful or not
+        ~DSGUI_ListModal()
+        {
+            cpos = new Vector3(0, 0, 0);
+            pawn = null;
+            opts = null;
+            thingList = null;
+            rows = null;
+        }
+        */
         
         public override void DoWindowContents(Rect inRect)
         {
-            rows = new List<DSGUI_ListItem>();
             var y = 0;
             var innerRect = inRect;
             innerRect.y += 8f;

@@ -11,12 +11,28 @@ namespace LWM.DeepStorage
     [StaticConstructorOnStartup]
     public class DSGUI_ListItem
     {
-        private static readonly Texture2D menuIcon = ContentFinder<Texture2D>.Get("UI/Buttons/MainButtons/Menu");
-        private static Texture2D thingIcon;
-        private static Color thingColor = Color.white;
-        private static readonly List<FloatMenuOption> orders = new List<FloatMenuOption>();
-        private static Thing target;
-        private static float height;
+        // Allow calling AddHumanlikeOrders
+        private static readonly MethodInfo AHlO = typeof(FloatMenuMakerMap).GetMethod("AddHumanlikeOrders",
+            BindingFlags.Static | BindingFlags.NonPublic);
+        
+        // Allow directly setting Position of things.  And setting it back.
+        private static readonly FieldInfo fieldPosition = typeof(Thing).GetField("positionInt",
+            BindingFlags.Instance |
+            BindingFlags.GetField |
+            BindingFlags.SetField |
+            BindingFlags.NonPublic);
+        
+        private static void SetPosition(Thing t, IntVec3 p)
+        {
+            fieldPosition.SetValue(t, p);
+        }
+        
+        private readonly Texture2D menuIcon = ContentFinder<Texture2D>.Get("UI/Buttons/MainButtons/Menu");
+        private readonly Texture2D thingIcon;
+        private readonly Color thingColor = Color.white;
+        private readonly List<FloatMenuOption> orders = new List<FloatMenuOption>();
+        private readonly Thing target;
+        private readonly float height;
 
         public readonly string label;
 
@@ -42,9 +58,9 @@ namespace LWM.DeepStorage
             }
 
             if (orders.NullOrEmpty())
+            {
                 DSGUI_AHLO.AddHumanlikeOrdersForThing(thing, clickPos, pawn, orders);
-
-            Log.Message("[LWM]" + target.Label);
+            }
         }
 
         public void DoDraw(Rect inRect, float y)
@@ -56,7 +72,7 @@ namespace LWM.DeepStorage
             actionRect.x -= 16;
 
             GUI.color = thingColor;
-            Widgets.DrawTextureFitted(graphicRect.LeftPart(0.15f).ContractedBy(2f), thingIcon, 1.25f);
+            Widgets.DrawTextureFitted(graphicRect.LeftPart(0.15f).ContractedBy(2f), thingIcon, 1.2f);
             TooltipHandler.TipRegion(graphicRect.RightPart(0.85f), (TipSignal) target.def.description);
             GUI.color = Color.white;
             
@@ -72,7 +88,7 @@ namespace LWM.DeepStorage
             
             if (orders.Count > 0) 
             {
-                if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, 1.25f))
+                if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, 1.2f))
                 {
                     var floatMenuMap = new FloatMenuMap(orders, "Orders", UI.MouseMapPosition()) {givesColonistOrders = true};
                     Find.WindowStack.Add(floatMenuMap);
