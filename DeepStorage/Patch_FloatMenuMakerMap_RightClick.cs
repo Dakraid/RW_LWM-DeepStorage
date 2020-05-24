@@ -1,9 +1,11 @@
 // for OpCodes in Harmony Transpiler
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
+using JetBrains.Annotations;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -11,6 +13,11 @@ using static LWM.DeepStorage.Utils.DBF; // trace utils
 
 namespace LWM.DeepStorage
 {
+    public static class GlobalFlag
+    {
+        public static Thing currThing = null;
+    }
+    
     /*
       Desired sequence of events:
       User right-clicks with pawn selected
@@ -43,22 +50,26 @@ namespace LWM.DeepStorage
         [HarmonyPriority(Priority.First)]
         public static bool Prefix(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
         {
+            if (GlobalFlag.currThing != null)
+                return true;
+            
             return Settings.useDeepStorageNewRightClick ? Patch_FloatMenuMakerMap.NewContextMenu(clickPos, IntVec3.Invalid, pawn, opts) : Patch_FloatMenuMakerMap.OldContextMenu(clickPos, IntVec3.Invalid, pawn, opts);
         }
 
         [HarmonyPriority(Priority.Last)]
         public static void Postfix(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
         {
+            /*
             if (Settings.useDeepStorageNewRightClick)
                 Patch_FloatMenuMakerMap.NewPostfix(clickPos, pawn, opts);
             else
                 Patch_FloatMenuMakerMap.OldPostfix(clickPos, pawn, opts);
+            */
         }
     }
     
-    /*
-    [HarmonyPatch(typeof(FloatMenuMakerMap), "TryMakeFloatMenu")]
-    internal static class Patch_TryMakeFloatMenu
+    [HarmonyPatch(typeof(GridsUtility), "GetThingList")]
+    internal static class Patch_GetThingList
     {
         private static bool Prepare(Harmony instance)
         {
@@ -66,12 +77,18 @@ namespace LWM.DeepStorage
         }
 
         [HarmonyPriority(Priority.First)]
-        public static bool Prefix(Pawn pawn)
+        public static bool Prefix(ref List<Thing> __result)
         {
-            return Settings.useDeepStorageNewRightClick;
+            if (__result == null)
+                __result = new List<Thing>();
+            
+            if (GlobalFlag.currThing == null)
+                return true;
+            
+            __result.Add(GlobalFlag.currThing);
+            return false;
         }
     }
-    */
 
     internal static class Patch_FloatMenuMakerMap
     {
@@ -79,7 +96,6 @@ namespace LWM.DeepStorage
         private static readonly List<FloatMenuOption> realList = new List<FloatMenuOption>();
         private static int failsafe;
 
-        /****************** Black Magic ***************/
         // Allow calling AddHumanlikeOrders
         private static readonly MethodInfo AHlO = typeof(FloatMenuMakerMap).GetMethod("AddHumanlikeOrders",
             BindingFlags.Static | BindingFlags.NonPublic);
@@ -99,7 +115,8 @@ namespace LWM.DeepStorage
 
         public static void NewPostfix(Vector3 clickPosition, Pawn pawn, List<FloatMenuOption> opts)
         {
-            opts.Clear();
+            if (GlobalFlag.currThing == null)
+                opts.Clear();
         }
         
         // We have to run as Prefix, because we need to intercept the incoming List.
@@ -196,11 +213,10 @@ namespace LWM.DeepStorage
             realList.Clear();
         }
 
-        /******************* Utility Functions *******************/
         // Allow directly setting Position of things.  And setting it back.
         private static void SetPosition(Thing t, IntVec3 p)
         {
             fieldPosition.SetValue(t, p);
         }
-    } // end patch class    
+    }
 }

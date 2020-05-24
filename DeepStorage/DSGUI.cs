@@ -14,13 +14,13 @@ namespace LWM.DeepStorage
             public static bool Create(Vector3 clickPosition, Pawn pawn, List<FloatMenuOption> opts)
             {
                 if (Find.WindowStack.IsOpen(typeof(DSGUI_ListModal)))
-                    return true;
+                    return false;
                 
                 var c = IntVec3.FromVector3(clickPosition);
 
                 var target = (c.GetSlotGroup(pawn.Map)?.parent as ThingWithComps)?.AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings);
                 if (target == null)
-                    return false;
+                    return true;
 
                 var thingList = new List<Thing>();
                 var cells = target.parent.GetSlotGroup().CellsList;
@@ -31,7 +31,7 @@ namespace LWM.DeepStorage
                     return true;
                 
                 Find.WindowStack.Add(new DSGUI_ListModal(pawn, thingList, clickPosition, opts));
-                return true;
+                return false;
             }
         }
     }

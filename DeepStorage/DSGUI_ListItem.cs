@@ -57,10 +57,12 @@ namespace LWM.DeepStorage
                 thingIcon = Texture2D.blackTexture;
             }
 
-            if (orders.NullOrEmpty())
-            {
-                DSGUI_AHLO.AddHumanlikeOrdersForThing(thing, clickPos, pawn, orders);
-            }
+            if (!orders.NullOrEmpty()) return;
+
+            GlobalFlag.currThing = thing;
+            var origParams = new object[] {clickPos, pawn, orders};
+            AHlO.Invoke(null, origParams);
+            GlobalFlag.currThing = null;
         }
 
         public void DoDraw(Rect inRect, float y)
