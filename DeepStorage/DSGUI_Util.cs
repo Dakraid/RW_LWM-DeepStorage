@@ -8,6 +8,7 @@ using Verse;
 
 namespace LWM.DeepStorage
 {
+    [StaticConstructorOnStartup]
     public class DSGUI_Util
     {
         private static readonly Texture2D menuIcon = ContentFinder<Texture2D>.Get("UI/Buttons/MainButtons/Menu");
@@ -83,34 +84,6 @@ namespace LWM.DeepStorage
             if (y == 0) return;
             
             DSGUI.Elements.SeparatorHorizontal(0f, boxHeight * y, inRect.width);
-        }
-
-        public static void GenerateOptsListing(
-            Rect inRect,
-            Pawn pawn,
-            Vector3 clickPos,
-            FloatMenuOption opt,
-            int boxHeight,
-            int y)
-        {
-            var entryRect = new Rect(0.0f, boxHeight * y, inRect.width, boxHeight);
-
-            if (Mouse.IsOver(entryRect))
-                Widgets.DrawHighlight(entryRect);
-            
-            GUI.color = Color.white;
-            Text.Font = GameFont.Tiny;
-
-            if (Widgets.ButtonText(entryRect, opt.Label))
-            {
-                //
-            }
-
-            if (y == 0) return;
-
-            GUI.color = Color.grey;
-            Widgets.DrawLineHorizontal(0.0f, boxHeight * y, inRect.width);
-            GUI.color = Color.white;
         }
     }
 }
