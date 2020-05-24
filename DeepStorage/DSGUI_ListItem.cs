@@ -33,18 +33,20 @@ namespace LWM.DeepStorage
         private readonly List<FloatMenuOption> orders = new List<FloatMenuOption>();
         private readonly Thing target;
         private readonly float height;
+        private readonly Pawn pawn;
 
         public readonly string label;
 
         public DSGUI_ListItem(
-            Pawn pawn,
-            Thing thing,
+            Pawn p,
+            Thing t,
             Vector3 clickPos,
             float boxHeight)
         {
             height = boxHeight;
-            target = thing.GetInnerIfMinified();
-            label = thing.Label;
+            target = t.GetInnerIfMinified();
+            label = t.Label;
+            pawn = p;
 
             try
             {
@@ -53,13 +55,13 @@ namespace LWM.DeepStorage
             }
             catch
             {
-                Log.Warning($"[LWM] Thing {thing.def.defName} has no UI icon.");
+                Log.Warning($"[LWM] Thing {t.def.defName} has no UI icon.");
                 thingIcon = Texture2D.blackTexture;
             }
 
             if (!orders.NullOrEmpty()) return;
 
-            GlobalFlag.currThing = thing;
+            GlobalFlag.currThing = t;
             var origParams = new object[] {clickPos, pawn, orders};
             AHlO.Invoke(null, origParams);
             GlobalFlag.currThing = null;
@@ -90,11 +92,7 @@ namespace LWM.DeepStorage
             
             if (orders.Count > 0) 
             {
-                if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, 1.2f))
-                {
-                    var floatMenuMap = new FloatMenuMap(orders, "Orders", UI.MouseMapPosition()) {givesColonistOrders = true};
-                    Find.WindowStack.Add(floatMenuMap);
-                }
+                if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, 1.2f)) DSGUI.Elements.TryMakeFloatMenu(pawn, orders);
             }
             else
             {

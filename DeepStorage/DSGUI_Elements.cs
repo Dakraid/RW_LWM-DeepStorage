@@ -97,6 +97,47 @@ namespace LWM.DeepStorage
                 GUI.color = baseColor;
                 return Widgets.ButtonInvisible(butRect);
             }
+            
+            public static void TryMakeFloatMenu(Pawn pawn, List<FloatMenuOption> options)
+            {
+                if (!pawn.IsColonistPlayerControlled)
+                    return;
+                
+                if (pawn.Downed)
+                {
+                    Messages.Message("IsIncapped".Translate((NamedArgument) pawn.LabelCap, (NamedArgument) pawn), pawn, MessageTypeDefOf.RejectInput, false);
+                }
+                else
+                {
+                    if (pawn.Map != Find.CurrentMap || options.Count == 0)
+                        return;
+                    
+                    var flag = true;
+                    
+                    var floatMenuOption = (FloatMenuOption) null;
+                    foreach (var option in options)
+                    {
+                        if (option.Disabled || !option.autoTakeable)
+                        {
+                            flag = false;
+                            break;
+                        }
+
+                        if (floatMenuOption == null || (double) option.autoTakeablePriority > (double) floatMenuOption.autoTakeablePriority)
+                            floatMenuOption = option;
+                    }
+
+                    if (flag && floatMenuOption != null)
+                    {
+                        floatMenuOption.Chosen(true, (FloatMenu) null);
+                    }
+                    else
+                    {
+                        var floatMenuMap = new FloatMenuMap(options, pawn.LabelCap, UI.MouseMapPosition()) {givesColonistOrders = true};
+                        Find.WindowStack.Add(floatMenuMap);
+                    }
+                }
+            }
         }
     }
 }
