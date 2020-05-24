@@ -25,7 +25,7 @@ namespace LWM.DeepStorage
         private static Pawn pawn;
         private static List<Thing> thingList;
         private static List<FloatMenuOption> opts;
-        private static List<DSGUI_ListItem> rows = new List<DSGUI_ListItem>();
+        private static List<DSGUI_ListItem> rows;
 
         public DSGUI_ListModal(Pawn p, List<Thing> lt, Vector3 pos, List<FloatMenuOption> op)
         {
@@ -42,7 +42,7 @@ namespace LWM.DeepStorage
             opts = op;
             
             lt.RemoveAll(t => t.def.category != ThingCategory.Item || t is Mote);
-            thingList = lt;
+            thingList = new List<Thing>(lt);
             
             rows.Clear();
         }
@@ -50,6 +50,7 @@ namespace LWM.DeepStorage
         
         public override void DoWindowContents(Rect inRect)
         {
+            rows = new List<DSGUI_ListItem>();
             var y = 0;
             var innerRect = inRect;
             innerRect.y += 8f;
@@ -72,7 +73,7 @@ namespace LWM.DeepStorage
                 {
                     try
                     {
-                        rows.Add(new DSGUI_ListItem(listRect, pawn, thing, cpos, opts, boxHeight, y));
+                        rows.Add(new DSGUI_ListItem(pawn, thing, cpos, boxHeight));
                     }
                     catch (Exception ex)
                     {

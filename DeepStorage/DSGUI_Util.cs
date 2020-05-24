@@ -60,22 +60,19 @@ namespace LWM.DeepStorage
             if (!opts.NullOrEmpty())
                 opts.Clear();
             
-            DSGUI_AHLO.AddHumanlikeOrdersForThing(thing, clickPos, pawn, opts);
-            
-            if (opts.Count > 0) 
+            if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, 1.25f))
             {
-                if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, 1.25f))
+                DSGUI_AHLO.AddHumanlikeOrdersForThing(thing, clickPos, pawn, opts);
+            
+                if (opts.Count > 0) 
                 {
                     var floatMenuMap = new FloatMenuMap(opts, "Orders", UI.MouseMapPosition()) {givesColonistOrders = true};
                     Find.WindowStack.Add(floatMenuMap);
                 }
-            }
-            else
-            {
-                GUI.color = Color.gray;
-                Widgets.DrawTextureFitted(actionRect, menuIcon, 1.25f);
-                GUI.color = Color.white;
-                TooltipHandler.TipRegion(actionRect, "No orders available");
+                else
+                {
+                    TooltipHandler.TipRegion(actionRect, "No orders available");
+                }
             }
             
             if (Mouse.IsOver(actionRect))
