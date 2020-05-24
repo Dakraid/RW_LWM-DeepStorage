@@ -36,8 +36,7 @@ namespace LWM.DeepStorage
     {
         private static bool Prepare(Harmony instance)
         {
-            Utils.Warn(RightClickMenu, "Loading AddHumanlikeOrders menu code: "
-                                       + Settings.useDeepStorageRightClickLogic);
+            Utils.Warn(RightClickMenu, "Loading AddHumanlikeOrders menu code: " + Settings.useDeepStorageRightClickLogic);
             return Settings.useDeepStorageRightClickLogic;
         }
 
@@ -50,9 +49,29 @@ namespace LWM.DeepStorage
         [HarmonyPriority(Priority.Last)]
         public static void Postfix(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
         {
-            Patch_FloatMenuMakerMap.Postfix(clickPos, pawn, opts);
+            if (Settings.useDeepStorageNewRightClick)
+                Patch_FloatMenuMakerMap.NewPostfix(clickPos, pawn, opts);
+            else
+                Patch_FloatMenuMakerMap.OldPostfix(clickPos, pawn, opts);
         }
     }
+    
+    /*
+    [HarmonyPatch(typeof(FloatMenuMakerMap), "TryMakeFloatMenu")]
+    internal static class Patch_TryMakeFloatMenu
+    {
+        private static bool Prepare(Harmony instance)
+        {
+            return Settings.useDeepStorageNewRightClick;
+        }
+
+        [HarmonyPriority(Priority.First)]
+        public static bool Prefix(Pawn pawn)
+        {
+            return Settings.useDeepStorageNewRightClick;
+        }
+    }
+    */
 
     internal static class Patch_FloatMenuMakerMap
     {
@@ -75,11 +94,12 @@ namespace LWM.DeepStorage
 
         public static bool NewContextMenu(Vector3 clickPosition, IntVec3 c, Pawn pawn, List<FloatMenuOption> opts)
         {
-            if (DSGUI.ContextMenuStorage.Create(clickPosition, pawn, opts))
-                return true;
-            
-            realList.Clear();
-            return false;
+            return DSGUI.ContextMenuStorage.Create(clickPosition, pawn, opts);
+        }
+
+        public static void NewPostfix(Vector3 clickPosition, Pawn pawn, List<FloatMenuOption> opts)
+        {
+            opts.Clear();
         }
         
         // We have to run as Prefix, because we need to intercept the incoming List.
@@ -166,7 +186,7 @@ namespace LWM.DeepStorage
             return false;
         }
 
-        public static void Postfix(Vector3 clickPosition, Pawn pawn, List<FloatMenuOption> opts)
+        public static void OldPostfix(Vector3 clickPosition, Pawn pawn, List<FloatMenuOption> opts)
         {
             if (runningPatchLogic) return;
             if (realList.Count == 0) return; // incidentally breaks out of logic here in case not in a DSU

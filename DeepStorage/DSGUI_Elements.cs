@@ -25,14 +25,13 @@ namespace LWM.DeepStorage
                 if (buff == null)
                     buff = "";
             
-                var rect1 = rect;
                 if (icon != null)
                 {
                     var outerRect = rect;
                     outerRect.width = outerRect.height;
                     Widgets.DrawTextureFitted(outerRect, icon, 1f);
-                    rect1.width -= outerRect.width;
-                    rect1.x += outerRect.width;
+                    rect.width -= outerRect.width;
+                    rect.x += outerRect.width;
                 }
 
                 if (ShowName)
@@ -40,15 +39,15 @@ namespace LWM.DeepStorage
                     Text.Anchor = TextAnchor.MiddleCenter;
                     Widgets.Label(rect.LeftPart(0.2f), name);
                     Text.Anchor = TextAnchor.UpperLeft;
-                    rect1 = rect.RightPart(0.8f);
+                    rect = rect.RightPart(0.8f);
                 }
 
                 GUI.SetNextControlName(name);
-                buff = GUI.TextField(rect1, buff, max, Text.CurTextAreaStyle);
+                buff = GUI.TextField(rect, buff, max, Text.CurTextAreaStyle);
                 var flag = GUI.GetNameOfFocusedControl() == name;
                 if (!flag & forceFocus)
                     GUI.FocusControl(name);
-                if (((!Input.GetMouseButtonDown(0) ? 0 : !Mouse.IsOver(rect1) ? 1 : 0) & (flag ? 1 : 0)) != 0)
+                if (((!Input.GetMouseButtonDown(0) ? 0 : !Mouse.IsOver(rect) ? 1 : 0) & (flag ? 1 : 0)) != 0)
                     GUI.FocusControl(null);
             }
 

@@ -10,13 +10,15 @@ namespace LWM.DeepStorage
 {
     public class DSGUI_Util
     {
+        private static readonly Texture2D menuIcon = ContentFinder<Texture2D>.Get("UI/Buttons/MainButtons/Menu");
+
         public static void GenerateListing(
             Rect inRect,
             Pawn pawn,
             Thing thing,
             Vector3 clickPos,
             List<FloatMenuOption> opts,
-            int boxHeight,
+            float boxHeight,
             int y)
         {
             var entryRect = new Rect(0.0f, boxHeight * y, inRect.width, boxHeight);
@@ -37,7 +39,7 @@ namespace LWM.DeepStorage
             // We keep the LeftPart for the future, but right now it doesn't do anything
             var graphicRect = entryRect.LeftPart(0.9f);
             graphicRect.width -= 16;
-            Widgets.DrawTextureFitted(graphicRect.LeftPart(0.15f).ContractedBy(2f), thingIcon, 1f);
+            Widgets.DrawTextureFitted(graphicRect.LeftPart(0.15f).ContractedBy(2f), thingIcon, 1.25f);
             TooltipHandler.TipRegion(graphicRect.RightPart(0.85f), (TipSignal) thing.def.description);
             if (DSGUI.Elements.ButtonInvisibleLabeled(Color.white, GameFont.Small, graphicRect.RightPart(0.85f), thing.Label.CapitalizeFirst()))
             {
@@ -61,12 +63,18 @@ namespace LWM.DeepStorage
             
             if (opts.Count > 0) 
             {
-                var menuIcon = ContentFinder<Texture2D>.Get("UI/Buttons/MainButtons/Menu");
-                if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, 2f))
+                if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, 1.25f))
                 {
                     var floatMenuMap = new FloatMenuMap(opts, "Orders", UI.MouseMapPosition()) {givesColonistOrders = true};
                     Find.WindowStack.Add(floatMenuMap);
                 }
+            }
+            else
+            {
+                GUI.color = Color.gray;
+                Widgets.DrawTextureFitted(actionRect, menuIcon, 1.25f);
+                GUI.color = Color.white;
+                TooltipHandler.TipRegion(actionRect, "No orders available");
             }
             
             if (Mouse.IsOver(actionRect))

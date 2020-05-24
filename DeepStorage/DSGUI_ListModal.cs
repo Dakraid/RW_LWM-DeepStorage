@@ -8,7 +8,8 @@ namespace LWM.DeepStorage
 {
     public class DSGUI_ListModal : Window
     {
-        private const int boxHeight = 32;
+        private const float boxHeight = 32f;
+        private const float searchClearPadding = 16f;
 
         private static readonly Vector2 defaultScreenSize = new Vector2(1920, 1080);
         private static readonly Vector2 modalSize = new Vector2(360, 480);
@@ -16,8 +17,7 @@ namespace LWM.DeepStorage
         private static Vector2 scrollPosition;
         private static float RecipesScrollHeight;
         private static string searchString;
-        private static float searchClearPadding = 16f;
-        
+
         private static Vector3 cpos;
         private static Pawn pawn;
         private static List<Thing> thingList;
@@ -50,12 +50,62 @@ namespace LWM.DeepStorage
             var y = 0;
             var innerRect = inRect;
             innerRect.y += 8f;
-            innerRect.height -= 16f;       
+            innerRect.height -= 16f;
+
+            // Scrollable List
+            var scrollRect = new Rect(innerRect);
+            scrollRect.y += 3f;
+            scrollRect.x += 8f;
+            scrollRect.height -= 49f;
+            scrollRect.width -= 16f;
+            
+            var listRect = new Rect(0.0f, 0.0f, scrollRect.width, RecipesScrollHeight);
+            
+            Widgets.DrawBox(scrollRect);
+            Widgets.BeginScrollView(scrollRect, ref scrollPosition, listRect);
+            GUI.BeginGroup(listRect);
+
+            if (searchString.NullOrEmpty())
+                foreach (var thing in thingList)
+                {
+                    try
+                    {
+                        DSGUI_Util.GenerateListing(listRect, pawn, thing, cpos, opts, boxHeight, y);
+                    }
+                    catch (Exception ex)
+                    {
+                        var rect5 = scrollRect.ContractedBy(-4f);
+                        Widgets.Label(rect5, "Oops, something went wrong!");
+                        Log.Warning(ex.ToString());
+                    }
+
+                    ++y;
+                }
+            else
+                foreach (var thing in thingList.Where(thing => thing.Label.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    try
+                    {
+                        DSGUI_Util.GenerateListing(listRect, pawn, thing, cpos, opts, boxHeight, y);
+                    }
+                    catch (Exception ex)
+                    {
+                        var rect5 = scrollRect.ContractedBy(-4f);
+                        Widgets.Label(rect5, "Oops, something went wrong!");
+                        Log.Warning(ex.ToString());
+                    }
+
+                    ++y;
+                }
+
+            RecipesScrollHeight = boxHeight * y;
+            
+            GUI.EndGroup();
+            Widgets.EndScrollView();
             
             // Search
-            var searchRect = innerRect;
-            searchRect.y += 399f;
-            
+            var searchRect = new Rect(innerRect);
+            searchRect.y += scrollRect.height + 16f;
             searchRect.x += 8f;
             searchRect.height = 28f;
             searchRect.width -= 40f + searchClearPadding; // 16f for padding of 8f on each side + 28f for the clear button
@@ -67,40 +117,6 @@ namespace LWM.DeepStorage
             Text.Anchor = TextAnchor.MiddleLeft;
             if (Widgets.ButtonImageFitted(searchRect, Widgets.CheckboxOffTex))
                 searchString = "";
-
-            // Scrollable List
-            var scrollRect = innerRect;
-            scrollRect.y += 3f;
-            scrollRect.x += 8f;
-            scrollRect.height -= 49f;
-            scrollRect.width -= 16f;
-            
-            var listRect = new Rect(0.0f, 0.0f, scrollRect.width, RecipesScrollHeight);
-            
-            Widgets.DrawBox(scrollRect);
-            Widgets.BeginScrollView(scrollRect, ref scrollPosition, listRect);
-            GUI.BeginGroup(listRect);
-            
-            foreach (var thing in thingList.Where(thing => searchString.NullOrEmpty() || thing.Label.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0))
-            {
-                try
-                { 
-                    DSGUI_Util.GenerateListing(listRect, pawn, thing, cpos, opts, boxHeight, y);
-                }
-                catch (Exception ex)
-                {
-                    var rect5 = scrollRect.ContractedBy(-4f);
-                    Widgets.Label(rect5, "Oops, something went wrong!");
-                    Log.Warning(ex.ToString());
-                }
-
-                ++y;
-            }
-            
-            RecipesScrollHeight = boxHeight * y;
-            
-            GUI.EndGroup();
-            Widgets.EndScrollView();
             
             Text.Font = GameFont.Medium;
             Text.Anchor = TextAnchor.UpperLeft;

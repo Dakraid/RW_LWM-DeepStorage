@@ -14,7 +14,7 @@ namespace LWM.DeepStorage
             public static bool Create(Vector3 clickPosition, Pawn pawn, List<FloatMenuOption> opts)
             {
                 if (Find.WindowStack.IsOpen(typeof(DSGUI_ListModal)))
-                    return false;
+                    return true;
                 
                 var c = IntVec3.FromVector3(clickPosition);
 
@@ -23,6 +23,8 @@ namespace LWM.DeepStorage
                     return false;
 
                 var thingList = c.GetThingList(pawn.Map);
+                if (thingList.Count <= 0)
+                    return true;
                 
                 Find.WindowStack.Add(new DSGUI_ListModal(pawn, thingList, clickPosition, opts));
                 return true;
