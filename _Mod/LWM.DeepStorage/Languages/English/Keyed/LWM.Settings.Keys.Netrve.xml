@@ -3,4 +3,6 @@
   <!-- Settings -->
   <LWM_DS_useNewRightClick>Use new Deep Storage custom Right Click</LWM_DS_useNewRightClick>
   <LWM_DS_useNewRightClickDesc>This setting will activate the new Deep Storage Right Click UI by Netrve. Work in Progress.</LWM_DS_useNewRightClickDesc>
+  <LWM_DS_newNRC_IconScaling>Icon Scaling</LWM_DS_newNRC_IconScaling>
+  <LWM_DS_newNRC_BoxHeight>Scrollbox Item Height</LWM_DS_newNRC_BoxHeight>
 </LanguageData>

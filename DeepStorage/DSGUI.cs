@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using RimWorld;
 using UnityEngine;
 using Verse;
 
+// TODO: Issue - Orders are sometimes not matched to their item
+// TODO: Issue - Selection sends the view onto the world map
 namespace LWM.DeepStorage
 {
     public partial class DSGUI
@@ -15,7 +16,7 @@ namespace LWM.DeepStorage
             {
                 if (Find.WindowStack.IsOpen(typeof(DSGUI_ListModal)))
                     return false;
-                
+
                 var c = IntVec3.FromVector3(clickPosition);
 
                 var target = (c.GetSlotGroup(pawn.Map)?.parent as ThingWithComps)?.AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings);
@@ -29,7 +30,7 @@ namespace LWM.DeepStorage
 
                 if (thingList.NullOrEmpty())
                     return true;
-                
+
                 Find.WindowStack.Add(new DSGUI_ListModal(pawn, thingList, clickPosition, opts));
                 return false;
             }

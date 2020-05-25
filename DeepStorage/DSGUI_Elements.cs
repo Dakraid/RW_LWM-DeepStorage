@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -24,7 +22,7 @@ namespace LWM.DeepStorage
             {
                 if (buff == null)
                     buff = "";
-            
+
                 if (icon != null)
                 {
                     var outerRect = rect;
@@ -74,7 +72,7 @@ namespace LWM.DeepStorage
                 Widgets.DrawLineVertical(x, y, len);
                 GUI.color = Color.white;
             }
-            
+
             public static bool ButtonImageFittedScaled(Rect butRect, Texture2D tex, float scale)
             {
                 return ButtonImageFittedScaled(butRect, tex, Color.white, scale);
@@ -97,12 +95,12 @@ namespace LWM.DeepStorage
                 GUI.color = baseColor;
                 return Widgets.ButtonInvisible(butRect);
             }
-            
+
             public static void TryMakeFloatMenu(Pawn pawn, List<FloatMenuOption> options)
             {
                 if (!pawn.IsColonistPlayerControlled)
                     return;
-                
+
                 if (pawn.Downed)
                 {
                     Messages.Message("IsIncapped".Translate((NamedArgument) pawn.LabelCap, (NamedArgument) pawn), pawn, MessageTypeDefOf.RejectInput, false);
@@ -111,9 +109,9 @@ namespace LWM.DeepStorage
                 {
                     if (pawn.Map != Find.CurrentMap || options.Count == 0)
                         return;
-                    
+
                     var flag = true;
-                    
+
                     var floatMenuOption = (FloatMenuOption) null;
                     foreach (var option in options)
                     {
@@ -129,7 +127,7 @@ namespace LWM.DeepStorage
 
                     if (flag && floatMenuOption != null)
                     {
-                        floatMenuOption.Chosen(true, (FloatMenu) null);
+                        floatMenuOption.Chosen(true, null);
                     }
                     else
                     {

@@ -1,11 +1,9 @@
 // for OpCodes in Harmony Transpiler
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
-using JetBrains.Annotations;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -17,7 +15,7 @@ namespace LWM.DeepStorage
     {
         public static Thing currThing = null;
     }
-    
+
     /*
       Desired sequence of events:
       User right-clicks with pawn selected
@@ -52,8 +50,10 @@ namespace LWM.DeepStorage
         {
             if (GlobalFlag.currThing != null)
                 return true;
-            
-            return Settings.useDeepStorageNewRightClick ? Patch_FloatMenuMakerMap.NewContextMenu(clickPos, IntVec3.Invalid, pawn, opts) : Patch_FloatMenuMakerMap.OldContextMenu(clickPos, IntVec3.Invalid, pawn, opts);
+
+            return Settings.useDeepStorageNewRightClick
+                ? Patch_FloatMenuMakerMap.NewContextMenu(clickPos, IntVec3.Invalid, pawn, opts)
+                : Patch_FloatMenuMakerMap.OldContextMenu(clickPos, IntVec3.Invalid, pawn, opts);
         }
 
         [HarmonyPriority(Priority.Last)]
@@ -67,7 +67,7 @@ namespace LWM.DeepStorage
             */
         }
     }
-    
+
     [HarmonyPatch(typeof(GridsUtility), "GetThingList")]
     internal static class Patch_GetThingList
     {
@@ -81,10 +81,10 @@ namespace LWM.DeepStorage
         {
             if (__result == null)
                 __result = new List<Thing>();
-            
+
             if (GlobalFlag.currThing == null)
                 return true;
-            
+
             __result.Add(GlobalFlag.currThing);
             return false;
         }
@@ -118,13 +118,13 @@ namespace LWM.DeepStorage
             if (GlobalFlag.currThing == null)
                 opts.Clear();
         }
-        
+
         // We have to run as Prefix, because we need to intercept the incoming List.
         public static bool OldContextMenu(Vector3 clickPosition, IntVec3 c, Pawn pawn, List<FloatMenuOption> opts)
         {
             if (failsafe++ > 500) runningPatchLogic = false;
             if (runningPatchLogic) return true;
-            
+
             // Only give nice tidy menu if items are actually in Deep Storage: otherwise, they
             //   are a jumbled mess on the floor, and pawns can only interact with what's on
             //   top until they've cleaned up the mess.

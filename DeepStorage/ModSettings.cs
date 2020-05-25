@@ -26,7 +26,14 @@ namespace LWM.DeepStorage
         public static StoragePriority defaultStoragePriority = StoragePriority.Important;
 
         public static bool useDeepStorageRightClickLogic;
+        
         public static bool useDeepStorageNewRightClick;
+        public static float newNRC_IconScaling = 1f;
+        public static string newNRC_IconScalingBuff;
+        public static float newNRC_BoxHeight = 32f;
+        public static string newNRC_BoxHeightBuff;
+        
+        // public static bool duseDeepStorageNewRightClick;
 
         // Turning this off removes conflicts with some other storage mods (at least I hope so):
         //   (RimFactory? I think?)
@@ -101,9 +108,16 @@ namespace LWM.DeepStorage
             l.CheckboxLabeled("LWM_DS_useDSRightClick".Translate(), ref useDeepStorageRightClickLogic,
                 "LWM_DS_useDSRightClickDesc".Translate());
 
+            l.Gap();
             // TODO: WIP
             l.CheckboxLabeled("LWM_DS_useNewRightClick".Translate(), ref useDeepStorageNewRightClick,
                 "LWM_DS_useNewRightClickDesc".Translate());
+            
+            if (useDeepStorageNewRightClick)
+            {
+                l.TextFieldNumericLabeled("LWM_DS_newNRC_IconScaling".Translate(), ref newNRC_IconScaling, ref newNRC_IconScalingBuff, 0.1f);
+                l.TextFieldNumericLabeled("LWM_DS_newNRC_BoxHeight".Translate(), ref newNRC_BoxHeight, ref newNRC_BoxHeightBuff, 10f);
+            }
 
             // Architect Menu:
             l.GapLine(); //Architect Menu location
@@ -506,6 +520,8 @@ namespace LWM.DeepStorage
             Scribe_Values.Look(ref checkOverCapacity, "check_over_capacity", true);
             Scribe_Values.Look(ref useDeepStorageRightClickLogic, "DS_AHlO");
             Scribe_Values.Look(ref useDeepStorageNewRightClick, "DS_NRC");
+            Scribe_Values.Look(ref newNRC_BoxHeight, "DS_NRCBH");
+            Scribe_Values.Look(ref newNRC_IconScaling, "DS_NRCIS");
             // Architect Menu:
             Scribe_Values.Look(ref architectMenuDesigCatDef, "architect_desig", architectMenuDefaultDesigCatDef);
             Scribe_Values.Look(ref architectMenuAlwaysShowCategory, "architect_show");
