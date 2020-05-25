@@ -12,7 +12,7 @@ namespace LWM.DeepStorage
         private static readonly Vector2 modalSize = new Vector2(360, 480);
         public override Vector2 InitialSize => new Vector2(modalSize.x * (Screen.width / defaultScreenSize.x), modalSize.y * (Screen.height / defaultScreenSize.y));
 
-        private const float boxHeight = 32f;
+        private const float boxHeight = 48f;
         private const float searchClearPadding = 16f;
 
         private static Vector2 scrollPosition;
@@ -46,17 +46,6 @@ namespace LWM.DeepStorage
             
             rows.Clear();
         }
-
-        /* Destructor, not sure if useful or not
-        ~DSGUI_ListModal()
-        {
-            cpos = new Vector3(0, 0, 0);
-            pawn = null;
-            opts = null;
-            thingList = null;
-            rows = null;
-        }
-        */
         
         public override void DoWindowContents(Rect inRect)
         {
@@ -64,6 +53,9 @@ namespace LWM.DeepStorage
             var innerRect = inRect;
             innerRect.y += 8f;
             innerRect.height -= 16f;
+            
+            GizmoListRect = innerRect.AtZero();
+            GizmoListRect.y += scrollPosition.y;
 
             // Scrollable List
             var scrollRect = new Rect(innerRect);
@@ -94,26 +86,36 @@ namespace LWM.DeepStorage
                     ++y;
                 }
             }
-
-            y = 0;
             
             Widgets.DrawBox(scrollRect);
             Widgets.BeginScrollView(scrollRect, ref scrollPosition, listRect);
             GUI.BeginGroup(listRect);
-            
+
+#if DEBUG
+            var drawCount = 0;
+            Log.Message("[LWM] Total count of items: " + rows.Count);
+#endif
             if (searchString.NullOrEmpty())
-                foreach (var listItem in rows)
+                for (var i = 0; i < rows.Count; i++)
                 {
-                    listItem.DoDraw(listRect, y);
-                    ++y;
+                    if (!rows[i].GetRect(listRect, i).Overlaps(GizmoListRect)) continue;
+                    
+                    rows[i].DoDraw(listRect, i);
+#if DEBUG
+                    ++drawCount;
+#endif
                 }
             else
-                foreach (var listItem in rows.Where(item => item.label.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0)) 
+                for (var i = 0; i < rows.Count; i++)
                 {
-                    listItem.DoDraw(listRect, y);
-                    ++y;
+                    if (!rows[i].GetRect(listRect, i).Overlaps(GizmoListRect)) continue;
+                    if (!(rows[i].label.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0)) continue;
+                        
+                    rows[i].DoDraw(listRect, i);
                 }
-
+#if DEBUG
+            Log.Message("[LWM] Drawn count of items: " + drawCount);
+#endif
             RecipesScrollHeight = boxHeight * rows.Count;
             
             GUI.EndGroup();

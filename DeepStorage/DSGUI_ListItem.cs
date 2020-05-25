@@ -76,7 +76,7 @@ namespace LWM.DeepStorage
             actionRect.x -= 16;
 
             GUI.color = thingColor;
-            Widgets.DrawTextureFitted(graphicRect.LeftPart(0.15f).ContractedBy(2f), thingIcon, 1.2f);
+            Widgets.DrawTextureFitted(graphicRect.LeftPart(0.15f).ContractedBy(2f), thingIcon, 1f);
             TooltipHandler.TipRegion(graphicRect.RightPart(0.85f), (TipSignal) target.def.description);
             GUI.color = Color.white;
             
@@ -92,12 +92,12 @@ namespace LWM.DeepStorage
             
             if (orders.Count > 0) 
             {
-                if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, 1.2f)) DSGUI.Elements.TryMakeFloatMenu(pawn, orders);
+                if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, 1f)) DSGUI.Elements.TryMakeFloatMenu(pawn, orders);
             }
             else
             {
                 GUI.color = Color.gray;
-                Widgets.DrawTextureFitted(actionRect, menuIcon, 1.25f);
+                Widgets.DrawTextureFitted(actionRect, menuIcon, 1f);
                 GUI.color = Color.white;
                 TooltipHandler.TipRegion(actionRect, "No orders available");
             }
@@ -107,6 +107,11 @@ namespace LWM.DeepStorage
             
             if (y != 0)
                 DSGUI.Elements.SeparatorHorizontal(0f, height * y, listRect.width);
+        }
+
+        public Rect GetRect(Rect inRect, float y)
+        {
+            return new Rect(0.0f, height * y, inRect.width, height);
         }
     }
 }

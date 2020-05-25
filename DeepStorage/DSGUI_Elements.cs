@@ -123,7 +123,7 @@ namespace LWM.DeepStorage
                             break;
                         }
 
-                        if (floatMenuOption == null || (double) option.autoTakeablePriority > (double) floatMenuOption.autoTakeablePriority)
+                        if (floatMenuOption == null || option.autoTakeablePriority > floatMenuOption.autoTakeablePriority)
                             floatMenuOption = option;
                     }
 
@@ -133,7 +133,7 @@ namespace LWM.DeepStorage
                     }
                     else
                     {
-                        var floatMenuMap = new FloatMenuMap(options, pawn.LabelCap, UI.MouseMapPosition()) {givesColonistOrders = true};
+                        var floatMenuMap = new FloatMenu(options, pawn.LabelCap) {givesColonistOrders = true};
                         Find.WindowStack.Add(floatMenuMap);
                     }
                 }
