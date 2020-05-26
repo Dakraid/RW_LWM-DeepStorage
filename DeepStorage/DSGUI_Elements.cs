@@ -59,6 +59,11 @@ namespace LWM.DeepStorage
                 return Widgets.ButtonInvisible(inRect.ContractedBy(2f));
             }
 
+            public static void SolidColorBG(Rect inRect, Color inColor)
+            {
+                GUI.DrawTexture(inRect, SolidColorMaterials.NewSolidColorTexture(inColor));
+            }
+
             public static void SeparatorHorizontal(float x, float y, float len)
             {
                 GUI.color = Color.grey;

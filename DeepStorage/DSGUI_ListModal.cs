@@ -20,7 +20,7 @@ namespace LWM.DeepStorage
         private static Vector3 lpos;
         private static Pawn pawn;
         private static List<Thing> thingList;
-        private readonly List<DSGUI_ListItem> rows = new List<DSGUI_ListItem>();
+        private readonly DSGUI_ListItem[] rows;
         private Rect GizmoListRect;
 
         public DSGUI_ListModal(Pawn p, List<Thing> lt, Vector3 pos, List<FloatMenuOption> op)
@@ -39,8 +39,7 @@ namespace LWM.DeepStorage
             lt.RemoveAll(t => t.def.category != ThingCategory.Item || t is Mote);
             thingList = new List<Thing>(lt);
 
-            rows.Clear();
-
+            rows = new DSGUI_ListItem[thingList.Count];
             boxHeight = Settings.newNRC_BoxHeight;
         }
 
@@ -64,12 +63,12 @@ namespace LWM.DeepStorage
 
             var listRect = new Rect(0.0f, 0.0f, scrollRect.width, RecipesScrollHeight);
 
+            /*
             if (rows.NullOrEmpty() && !lpos.Equals(cpos))
             {
                 lpos = cpos;
 
                 foreach (var thing in thingList)
-                {
                     try
                     {
                         rows.Add(new DSGUI_ListItem(pawn, thing, cpos, boxHeight));
@@ -80,42 +79,50 @@ namespace LWM.DeepStorage
                         Widgets.Label(rect5, "Oops, something went wrong!");
                         Log.Warning(ex.ToString());
                     }
-                }
             }
-
-            Widgets.DrawBox(scrollRect);
+            */
+                
             Widgets.BeginScrollView(scrollRect, ref scrollPosition, listRect);
             GUI.BeginGroup(listRect);
 
-#if DEBUG
-            var drawCount = 0;
-            Log.Message("[LWM] Total count of items: " + rows.Count);
-#endif
-            if (searchString.NullOrEmpty())
-                for (var i = 0; i < rows.Count; i++)
-                {
-                    if (!rows[i].GetRect(listRect, i).Overlaps(GizmoListRect)) continue;
+            var j = 0;
+            for (var i = 0; i < thingList.Count; i++)
+            {
+                ++j;
+                var viewElement = new Rect(0.0f, boxHeight * i, inRect.width, boxHeight);
+                if (!viewElement.Overlaps(GizmoListRect)) continue;
+                
+                if (rows[i] == null)
+                    try
+                    {
+                        rows[i] = new DSGUI_ListItem(pawn, thingList[i], cpos, boxHeight);
+                    }
+                    catch (Exception ex)
+                    {
+                        var rect5 = scrollRect.ContractedBy(-4f);
+                        Widgets.Label(rect5, "Oops, something went wrong!");
+                        Log.Warning(ex.ToString());
+                    }
 
-                    rows[i].DoDraw(listRect, i);
-#if DEBUG
-                    ++drawCount;
-#endif
-                }
-            else
-                for (var i = 0; i < rows.Count; i++)
+            
+                if (searchString.NullOrEmpty()) 
                 {
-                    if (!rows[i].GetRect(listRect, i).Overlaps(GizmoListRect)) continue;
+                    rows[i].DoDraw(listRect, i, (j % 2 == 0));
+                }
+                else
+                {
                     if (!(rows[i].label.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0)) continue;
 
-                    rows[i].DoDraw(listRect, i);
+                    rows[i].DoDraw(listRect, i, (j % 2 == 0));
                 }
-#if DEBUG
-            Log.Message("[LWM] Drawn count of items: " + drawCount);
-#endif
-            RecipesScrollHeight = boxHeight * rows.Count;
+            }
+
+            
+            RecipesScrollHeight = boxHeight * thingList.Count;
 
             GUI.EndGroup();
             Widgets.EndScrollView();
+            Widgets.DrawBox(scrollRect);
 
             // Search
             var searchRect = new Rect(innerRect);

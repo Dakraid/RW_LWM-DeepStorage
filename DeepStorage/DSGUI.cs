@@ -22,11 +22,16 @@ namespace LWM.DeepStorage
                 var target = (c.GetSlotGroup(pawn.Map)?.parent as ThingWithComps)?.AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings);
                 if (target == null)
                     return true;
-
+                
                 var thingList = new List<Thing>();
-                var cells = target.parent.GetSlotGroup().CellsList;
+                thingList.AddRange(c.GetThingList(pawn.Map));
+                
+                if (thingList.NullOrEmpty()) 
+                {
+                    var cells = target.parent.GetSlotGroup().CellsList;
 
-                foreach (var cell in cells) thingList.AddRange(cell.GetThingList(pawn.Map));
+                    foreach (var cell in cells) thingList.AddRange(cell.GetThingList(pawn.Map));
+                }
 
                 if (thingList.NullOrEmpty())
                     return true;
