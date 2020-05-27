@@ -19,7 +19,6 @@ namespace LWM.DeepStorage
         private readonly Vector3 cpos;
         private static Pawn pawn;
         private static List<Thing> thingList;
-        private readonly List<FloatMenuOption>[] optsList;
         private readonly DSGUI_ListItem[] rows;
         private Rect GizmoListRect;
 
@@ -40,7 +39,7 @@ namespace LWM.DeepStorage
             thingList = new List<Thing>(lt);
 
             rows = new DSGUI_ListItem[thingList.Count];
-            optsList = new List<FloatMenuOption>[thingList.Count];
+            
             boxHeight = Settings.newNRC_BoxHeight;
         }
 
@@ -78,8 +77,7 @@ namespace LWM.DeepStorage
                     try
                     {
                         DSGUI.GlobalStorage.currThing = thingList[i];
-                        optsList[i] = new List<FloatMenuOption>();
-                        rows[i] = new DSGUI_ListItem(pawn, thingList[i], cpos, optsList[i], boxHeight);
+                        rows[i] = new DSGUI_ListItem(pawn, thingList[i], cpos, boxHeight);
                         DSGUI.GlobalStorage.currThing = null;
                     }
                     catch (Exception ex)
@@ -92,13 +90,13 @@ namespace LWM.DeepStorage
             
                 if (searchString.NullOrEmpty()) 
                 {
-                    rows[i].DoDraw(listRect, i, optsList[i]);
+                    rows[i].DoDraw(listRect, i);
                 }
                 else
                 {
                     if (!(rows[i].label.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0)) continue;
 
-                    rows[i].DoDraw(listRect, i, optsList[i]);
+                    rows[i].DoDraw(listRect, i);
                 }
             }
 

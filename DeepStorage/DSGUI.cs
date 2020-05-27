@@ -13,7 +13,6 @@ namespace LWM.DeepStorage
         {
             public static Thing currThing = null;
             public static Thing lastThing = null;
-            public static bool ctorRunning = false;
         }
         
         public class ContextMenuStorage

@@ -26,17 +26,14 @@ namespace LWM.DeepStorage
         private readonly Thing target;
         private readonly Color thingColor = Color.white;
         private readonly Texture2D thingIcon;
-
-        public object this[int i] => null;
+        private readonly List<FloatMenuOption> orders = new List<FloatMenuOption>();
 
         public DSGUI_ListItem(
             Pawn p,
             Thing t,
             Vector3 clickPos,
-            List<FloatMenuOption> options,
             float boxHeight)
         {
-            DSGUI.GlobalStorage.ctorRunning = true;
             iconScale = Settings.newNRC_IconScaling;
             height = boxHeight;
             target = t.GetInnerIfMinified();
@@ -54,11 +51,10 @@ namespace LWM.DeepStorage
                 thingIcon = Texture2D.blackTexture;
             }
             
-            AHlO.Invoke(null, new object[] {clickPos, pawn, options});
-            DSGUI.GlobalStorage.ctorRunning = false;
+            AHlO.Invoke(null, new object[] {clickPos, pawn, orders});
         }
 
-        public void DoDraw(Rect inRect, float y, List<FloatMenuOption> options, bool altBG = false)
+        public void DoDraw(Rect inRect, float y, bool altBG = false)
         {
             var listRect = new Rect(0.0f, height * y, inRect.width, height);
 
@@ -88,11 +84,11 @@ namespace LWM.DeepStorage
             if (Mouse.IsOver(graphicRect))
                 Widgets.DrawHighlight(graphicRect);
 
-            if (options.Count > 0)
+            if (orders.Count > 0)
             {
                 if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, iconScale))
                 {
-                    DSGUI.Elements.TryMakeFloatMenu(pawn, options, target.LabelCapNoCount);
+                    DSGUI.Elements.TryMakeFloatMenu(pawn, orders, target.LabelCapNoCount);
                 }
             }
             else
