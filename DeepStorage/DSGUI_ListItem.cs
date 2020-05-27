@@ -7,12 +7,12 @@ using RimWorld;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using Verse;
+using Object = System.Object;
 
 namespace LWM.DeepStorage
 {
     public class DSGUI_ListItem
     {
-        // private readonly List<FloatMenuOption> orders = new List<FloatMenuOption>();
         public readonly string label;
         
         // Allow calling AddHumanlikeOrders
@@ -108,11 +108,6 @@ namespace LWM.DeepStorage
             
             if (y != 0)
                 DSGUI.Elements.SeparatorHorizontal(0f, height * y, listRect.width);
-        }
-
-        public Rect GetRect(Rect inRect, float y)
-        {
-            return new Rect(0.0f, height * y, inRect.width, height);
         }
     }
 }
