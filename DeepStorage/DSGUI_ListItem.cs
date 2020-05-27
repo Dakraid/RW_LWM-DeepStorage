@@ -51,7 +51,9 @@ namespace LWM.DeepStorage
                 thingIcon = Texture2D.blackTexture;
             }
             
+            DSGUI.GlobalStorage.currThing = target;
             AHlO.Invoke(null, new object[] {clickPos, pawn, orders});
+            DSGUI.GlobalStorage.currThing = null;
         }
 
         public void DoDraw(Rect inRect, float y, bool altBG = false)

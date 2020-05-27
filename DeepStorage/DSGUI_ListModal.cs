@@ -76,9 +76,7 @@ namespace LWM.DeepStorage
                 if (rows[i] == null)
                     try
                     {
-                        DSGUI.GlobalStorage.currThing = thingList[i];
                         rows[i] = new DSGUI_ListItem(pawn, thingList[i], cpos, boxHeight);
-                        DSGUI.GlobalStorage.currThing = null;
                     }
                     catch (Exception ex)
                     {
