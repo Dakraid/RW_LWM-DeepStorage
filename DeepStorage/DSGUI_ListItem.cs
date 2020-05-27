@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using RimWorld;
@@ -8,37 +10,38 @@ using Verse;
 
 namespace LWM.DeepStorage
 {
-    [StaticConstructorOnStartup]
     public class DSGUI_ListItem
     {
+        // private readonly List<FloatMenuOption> orders = new List<FloatMenuOption>();
         public readonly string label;
         
         // Allow calling AddHumanlikeOrders
-        private readonly MethodInfo AHlO = typeof(FloatMenuMakerMap).GetMethod("AddHumanlikeOrders", BindingFlags.Static | BindingFlags.NonPublic);
+        private readonly MethodInfo AHlO = AccessTools.Method(typeof(FloatMenuMakerMap), "AddHumanlikeOrders");
         
         private readonly float height;
         private readonly float iconScale;
 
         private readonly Texture2D menuIcon = ContentFinder<Texture2D>.Get("UI/Buttons/MainButtons/Menu");
-        private readonly List<FloatMenuOption> orders;
         private readonly Pawn pawn;
         private readonly Thing target;
         private readonly Color thingColor = Color.white;
         private readonly Texture2D thingIcon;
-        private readonly Vector3 cpos;
+
+        public object this[int i] => null;
 
         public DSGUI_ListItem(
             Pawn p,
             Thing t,
             Vector3 clickPos,
+            List<FloatMenuOption> options,
             float boxHeight)
         {
+            DSGUI.GlobalStorage.ctorRunning = true;
             iconScale = Settings.newNRC_IconScaling;
             height = boxHeight;
             target = t.GetInnerIfMinified();
             label = t.Label;
             pawn = p;
-            cpos = clickPos;
 
             try
             {
@@ -51,20 +54,17 @@ namespace LWM.DeepStorage
                 thingIcon = Texture2D.blackTexture;
             }
             
-            GlobalFlag.currThing = t;
-            orders = new List<FloatMenuOption>();
-            var origParams = new object[] {clickPos, pawn, orders};
-            AHlO.Invoke(null, origParams);
-            GlobalFlag.currThing = null;
+            AHlO.Invoke(null, new object[] {clickPos, pawn, options});
+            DSGUI.GlobalStorage.ctorRunning = false;
         }
 
-        public void DoDraw(Rect inRect, float y, bool altBG = false)
+        public void DoDraw(Rect inRect, float y, List<FloatMenuOption> options, bool altBG = false)
         {
             var listRect = new Rect(0.0f, height * y, inRect.width, height);
 
             //if (altBG)
             //    DSGUI.Elements.SolidColorBG(listRect, new Color(1f, 1f, 1f, 0.075f));
-                    
+            
             var graphicRect = listRect.LeftPart(0.9f);
             graphicRect.width -= 16;
             var actionRect = listRect.RightPart(0.1f);
@@ -88,12 +88,11 @@ namespace LWM.DeepStorage
             if (Mouse.IsOver(graphicRect))
                 Widgets.DrawHighlight(graphicRect);
 
-            if (orders.Count > 0)
+            if (options.Count > 0)
             {
                 if (DSGUI.Elements.ButtonImageFittedScaled(actionRect, menuIcon, iconScale))
                 {
-                    Find.WindowStack.TryRemove(typeof(FloatMenu));
-                    DSGUI.Elements.TryMakeFloatMenu(pawn, orders);
+                    DSGUI.Elements.TryMakeFloatMenu(pawn, options, target.LabelCapNoCount);
                 }
             }
             else

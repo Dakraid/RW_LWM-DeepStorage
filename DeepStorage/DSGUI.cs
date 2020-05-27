@@ -5,26 +5,47 @@ using UnityEngine;
 using Verse;
 
 // TODO: Issue - Orders are sometimes not matched to their item
-// TODO: Issue - Selection sends the view onto the world map
 namespace LWM.DeepStorage
 {
     public partial class DSGUI
     {
+        public static class GlobalStorage
+        {
+            public static Thing currThing = null;
+            public static Thing lastThing = null;
+            public static bool ctorRunning = false;
+        }
+        
         public class ContextMenuStorage
         {
-            public static bool Create(Vector3 clickPosition, Pawn pawn, List<FloatMenuOption> opts)
+            public static bool Create(Vector3 clickPosition, Pawn pawn)
             {
-                if (Find.WindowStack.IsOpen(typeof(DSGUI_ListModal)))
-                    return false;
-
                 var c = IntVec3.FromVector3(clickPosition);
+                
+                if (!pawn.IsColonistPlayerControlled)
+                    return false;
+            
+                if (pawn.Downed)
+                {
+                    Messages.Message("IsIncapped".Translate((NamedArgument) pawn.LabelCap, (NamedArgument) pawn), pawn, MessageTypeDefOf.RejectInput, false);
+                }
+                else
+                {
+                    if (pawn.Map != Find.CurrentMap)
+                        return false;
+                }
 
-                var target = (c.GetSlotGroup(pawn.Map)?.parent as ThingWithComps)?.AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings);
+                var buildingList = StaticHelper.GetBuildings(c, pawn.Map);
+                if (buildingList.NullOrEmpty())
+                    return true;
+
+                ThingComp target = null;
+                foreach (var building in buildingList) target = building.AllComps.Find(x => x is IHoldMultipleThings.IHoldMultipleThings);
+
                 if (target == null)
                     return true;
                 
-                var thingList = new List<Thing>();
-                thingList.AddRange(c.GetThingList(pawn.Map));
+                var thingList = new List<Thing>(c.GetThingList(pawn.Map));
                 
                 if (thingList.NullOrEmpty()) 
                 {
@@ -33,10 +54,7 @@ namespace LWM.DeepStorage
                     foreach (var cell in cells) thingList.AddRange(cell.GetThingList(pawn.Map));
                 }
 
-                if (thingList.NullOrEmpty())
-                    return true;
-
-                Find.WindowStack.Add(new DSGUI_ListModal(pawn, thingList, clickPosition, opts));
+                Find.WindowStack.Add(new DSGUI_ListModal(pawn, thingList, clickPosition));
                 return false;
             }
         }

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -10,12 +10,13 @@
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <UseMSBuildEngine>false</UseMSBuildEngine>
     <ReleaseVersion>1.1.0</ReleaseVersion>
+    <LangVersion>8</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\_Mod\LWM.DeepStorage\1.1\Assemblies</OutputPath>
+    <OutputPath>..\..\LWM.DeepStorage\1.1\Assemblies\</OutputPath>
     <DefineConstants>DEBUG;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -32,8 +33,9 @@
   <ItemGroup>
     <Reference Include="0Harmony, Version=2.0.1.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\..\..\References\0Harmony.dll</HintPath>
+      <Private>False</Private>
     </Reference>
-    <Reference Include="Assembly-CSharp, Version=1.1.7429.26553, Culture=neutral, PublicKeyToken=null">
+    <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\References\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
@@ -43,7 +45,8 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
-    <Reference Include="IHoldMultipleThings"><!-- Mehni's PickUpAndHold Compatibility -->
+    <Reference Include="IHoldMultipleThings">
+      <!-- Mehni's PickUpAndHold Compatibility -->
       <HintPath>..\packages\IHoldMultipleThings.dll</HintPath>
       <Private>False</Private>
     </Reference>
@@ -301,8 +304,6 @@
       <Link>_Mod\LWM.DeepStorage\Languages\English\Keyed\LWM.DeepStorage.Keys.xml</Link>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="_Mod\LWM.DeepStorage\Languages\English\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

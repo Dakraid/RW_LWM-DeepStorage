@@ -1,4 +1,6 @@
 ﻿using HugsLib;
+using HugsLib.Settings;
+using Verse;
 
 namespace LWM.DeepStorage
 {

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -7,6 +8,69 @@ namespace LWM.DeepStorage
 {
     public partial class DSGUI
     {
+        public static class StaticHelper
+        {
+            public static List<Building> GetBuildings(IntVec3 c, Map map)
+            {
+                var returnList = new List<Building>();
+                var thingList = map.thingGrid.ThingsListAt(c);
+                foreach (var t in thingList)
+                    if (t is Building building)
+                        returnList.Add(building);
+
+                return returnList;
+            }
+        }
+        
+        // TODO: Possibly verify the options based on the functionality as implemented in FloatMenuMap
+        public class Helper 
+        {
+            private static bool OptionsMatch(FloatMenuOption a, FloatMenuOption b)
+            {
+                return a.Label == b.Label;
+            }
+            
+            public static bool StillValid(
+                FloatMenuOption opt,
+                IEnumerable<FloatMenuOption> curOpts,
+                Pawn forPawn)
+            {
+                var cachedChoices = (List<FloatMenuOption>) null;
+                var cachedChoicesForPos = new Vector3(-9999f, -9999f, -9999f);
+                return StillValid(opt, curOpts, forPawn, ref cachedChoices, ref cachedChoicesForPos);
+            }
+
+            private static bool StillValid(
+                FloatMenuOption opt,
+                IEnumerable<FloatMenuOption> curOpts,
+                Pawn forPawn,
+                ref List<FloatMenuOption> cachedChoices,
+                ref Vector3 cachedChoicesForPos)
+            {
+                if (opt.revalidateClickTarget == null) return curOpts.Any(t => OptionsMatch(opt, t));
+
+                {
+                    if (!opt.revalidateClickTarget.Spawned)
+                        return false;
+
+                    var vector3Shifted = opt.revalidateClickTarget.Position.ToVector3Shifted();
+                    List<FloatMenuOption> floatMenuOptionList;
+                    if (vector3Shifted == cachedChoicesForPos)
+                    {
+                        floatMenuOptionList = cachedChoices;
+                    }
+                    else
+                    {
+                        cachedChoices = FloatMenuMakerMap.ChoicesAtFor(vector3Shifted, forPawn);
+                        cachedChoicesForPos = vector3Shifted;
+                        floatMenuOptionList = cachedChoices;
+                    }
+
+                    return (from t in floatMenuOptionList where OptionsMatch(opt, t) select !t.Disabled).FirstOrDefault();
+                }
+            }
+        }
+        
         public class Elements
         {
             // Credits to Dubwise for this awesome function
@@ -101,7 +165,7 @@ namespace LWM.DeepStorage
                 return Widgets.ButtonInvisible(butRect);
             }
 
-            public static void TryMakeFloatMenu(Pawn pawn, List<FloatMenuOption> options)
+            public static void TryMakeFloatMenu(Pawn pawn, List<FloatMenuOption> options, string title)
             {
                 if (!pawn.IsColonistPlayerControlled)
                     return;
@@ -136,7 +200,7 @@ namespace LWM.DeepStorage
                     }
                     else
                     {
-                        var floatMenuMap = new FloatMenu(options, pawn.LabelCap) {givesColonistOrders = true};
+                        var floatMenuMap = new FloatMenu(options, title) {givesColonistOrders = true};
                         Find.WindowStack.Add(floatMenuMap);
                     }
                 }

@@ -16,14 +16,14 @@ namespace LWM.DeepStorage
         private static float RecipesScrollHeight;
         private static string searchString = "";
 
-        private static Vector3 cpos;
-        private static Vector3 lpos;
+        private readonly Vector3 cpos;
         private static Pawn pawn;
         private static List<Thing> thingList;
+        private readonly List<FloatMenuOption>[] optsList;
         private readonly DSGUI_ListItem[] rows;
         private Rect GizmoListRect;
 
-        public DSGUI_ListModal(Pawn p, List<Thing> lt, Vector3 pos, List<FloatMenuOption> op)
+        public DSGUI_ListModal(Pawn p, List<Thing> lt, Vector3 pos)
         {
             closeOnClickedOutside = true;
             doCloseX = true;
@@ -40,6 +40,7 @@ namespace LWM.DeepStorage
             thingList = new List<Thing>(lt);
 
             rows = new DSGUI_ListItem[thingList.Count];
+            optsList = new List<FloatMenuOption>[thingList.Count];
             boxHeight = Settings.newNRC_BoxHeight;
         }
 
@@ -63,25 +64,6 @@ namespace LWM.DeepStorage
 
             var listRect = new Rect(0.0f, 0.0f, scrollRect.width, RecipesScrollHeight);
 
-            /*
-            if (rows.NullOrEmpty() && !lpos.Equals(cpos))
-            {
-                lpos = cpos;
-
-                foreach (var thing in thingList)
-                    try
-                    {
-                        rows.Add(new DSGUI_ListItem(pawn, thing, cpos, boxHeight));
-                    }
-                    catch (Exception ex)
-                    {
-                        var rect5 = scrollRect.ContractedBy(-4f);
-                        Widgets.Label(rect5, "Oops, something went wrong!");
-                        Log.Warning(ex.ToString());
-                    }
-            }
-            */
-                
             Widgets.BeginScrollView(scrollRect, ref scrollPosition, listRect);
             GUI.BeginGroup(listRect);
 
@@ -95,7 +77,10 @@ namespace LWM.DeepStorage
                 if (rows[i] == null)
                     try
                     {
-                        rows[i] = new DSGUI_ListItem(pawn, thingList[i], cpos, boxHeight);
+                        DSGUI.GlobalStorage.currThing = thingList[i];
+                        optsList[i] = new List<FloatMenuOption>();
+                        rows[i] = new DSGUI_ListItem(pawn, thingList[i], cpos, optsList[i], boxHeight);
+                        DSGUI.GlobalStorage.currThing = null;
                     }
                     catch (Exception ex)
                     {
@@ -107,13 +92,13 @@ namespace LWM.DeepStorage
             
                 if (searchString.NullOrEmpty()) 
                 {
-                    rows[i].DoDraw(listRect, i, (j % 2 == 0));
+                    rows[i].DoDraw(listRect, i, optsList[i]);
                 }
                 else
                 {
                     if (!(rows[i].label.IndexOf(searchString, StringComparison.OrdinalIgnoreCase) >= 0)) continue;
 
-                    rows[i].DoDraw(listRect, i, (j % 2 == 0));
+                    rows[i].DoDraw(listRect, i, optsList[i]);
                 }
             }
 

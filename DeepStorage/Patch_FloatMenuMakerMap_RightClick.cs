@@ -11,60 +11,18 @@ using static LWM.DeepStorage.Utils.DBF; // trace utils
 
 namespace LWM.DeepStorage
 {
-    public static class GlobalFlag
-    {
-        public static Thing currThing = null;
-    }
-
-    /*
-      Desired sequence of events:
-      User right-clicks with pawn selected
-      When AddHumanlikeOrders is run,
-        Prefix runs
-        Prefix sets flag
-      
-        Move All Items Away
-        (Get basic default orders?)
-        For Each Thing
-          Move Thing Back
-          Call AHlO/AJGWO - only calling AddHumanlikeOrders right now?
-          flag is set so runs normally
-          Move Thing Away
-        Move Things Back
-        Combine menu
-        return false
-      Postfix runs and catches logic, puts together complete, correct menu option list
-      So...look, we do the same thing twice!  Function calls!
-    */
-    [HarmonyPatch(typeof(FloatMenuMakerMap), "AddHumanlikeOrders")]
-    internal static class Patch_AddHumanlikeOrders
+    [HarmonyPatch(typeof(FloatMenuMakerMap), "TryMakeFloatMenu")]
+    internal static class Patch_TryMakeFloatMenu
     {
         private static bool Prepare(Harmony instance)
         {
-            Utils.Warn(RightClickMenu, "Loading AddHumanlikeOrders menu code: " + Settings.useDeepStorageRightClickLogic);
-            return Settings.useDeepStorageRightClickLogic;
+            return Settings.useDeepStorageNewRightClick;
         }
 
         [HarmonyPriority(Priority.First)]
-        public static bool Prefix(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
+        public static bool Prefix(Pawn pawn)
         {
-            if (GlobalFlag.currThing != null)
-                return true;
-
-            return Settings.useDeepStorageNewRightClick
-                ? Patch_FloatMenuMakerMap.NewContextMenu(clickPos, IntVec3.Invalid, pawn, opts)
-                : Patch_FloatMenuMakerMap.OldContextMenu(clickPos, IntVec3.Invalid, pawn, opts);
-        }
-
-        [HarmonyPriority(Priority.Last)]
-        public static void Postfix(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
-        {
-            /*
-            if (Settings.useDeepStorageNewRightClick)
-                Patch_FloatMenuMakerMap.NewPostfix(clickPos, pawn, opts);
-            else
-                Patch_FloatMenuMakerMap.OldPostfix(clickPos, pawn, opts);
-            */
+            return DSGUI.ContextMenuStorage.Create(UI.MouseMapPosition(), pawn);
         }
     }
 
@@ -79,14 +37,49 @@ namespace LWM.DeepStorage
         [HarmonyPriority(Priority.First)]
         public static bool Prefix(ref List<Thing> __result)
         {
-            if (__result == null)
-                __result = new List<Thing>();
-
-            if (GlobalFlag.currThing == null)
+            if (DSGUI.GlobalStorage.currThing == null)
                 return true;
 
-            __result.Add(GlobalFlag.currThing);
+            DSGUI.GlobalStorage.lastThing = DSGUI.GlobalStorage.currThing;
+            __result = new List<Thing> {DSGUI.GlobalStorage.currThing};
+            
             return false;
+        }
+
+        [HarmonyPriority(Priority.Last)]
+        public static void Postfix(ref List<Thing> __result)
+        {
+            if (DSGUI.GlobalStorage.currThing == null)
+                return;
+            
+            Log.Warning("[LWM] GetThingList returned `" + __result.ToStringSafeEnumerable() + "`");
+        }
+    }
+
+    [HarmonyPatch(typeof(FloatMenuMakerMap), "AddHumanlikeOrders")]
+    internal static class Patch_AddHumanlikeOrders
+    {
+        private static bool Prepare(Harmony instance)
+        {
+            Utils.Warn(RightClickMenu, "Loading AddHumanlikeOrders menu code: " + Settings.useDeepStorageRightClickLogic);
+            return Settings.useDeepStorageRightClickLogic;
+        }
+
+        [HarmonyPriority(Priority.First)]
+        public static bool Prefix(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
+        {
+            if (DSGUI.GlobalStorage.currThing == null)
+                return true;
+
+            return DSGUI.GlobalStorage.currThing != DSGUI.GlobalStorage.lastThing;
+
+            // return Patch_FloatMenuMakerMap.OldContextMenu(clickPos, IntVec3.Invalid, pawn, opts);
+        }
+
+        [HarmonyPriority(Priority.Last)]
+        public static void Postfix(Vector3 clickPos, Pawn pawn, List<FloatMenuOption> opts)
+        {
+            // Patch_FloatMenuMakerMap.OldPostfix(clickPos, pawn, opts);
         }
     }
 
@@ -97,8 +90,7 @@ namespace LWM.DeepStorage
         private static int failsafe;
 
         // Allow calling AddHumanlikeOrders
-        private static readonly MethodInfo AHlO = typeof(FloatMenuMakerMap).GetMethod("AddHumanlikeOrders",
-            BindingFlags.Static | BindingFlags.NonPublic);
+        private static readonly MethodInfo AHlO = AccessTools.Method(typeof(FloatMenuMakerMap), "AddHumanlikeOrders");
 
         // Allow directly setting Position of things.  And setting it back.
         private static readonly FieldInfo fieldPosition = typeof(Thing).GetField("positionInt",
@@ -107,18 +99,7 @@ namespace LWM.DeepStorage
             BindingFlags.SetField |
             BindingFlags.NonPublic);
 
-
-        public static bool NewContextMenu(Vector3 clickPosition, IntVec3 c, Pawn pawn, List<FloatMenuOption> opts)
-        {
-            return DSGUI.ContextMenuStorage.Create(clickPosition, pawn, opts);
-        }
-
-        public static void NewPostfix(Vector3 clickPosition, Pawn pawn, List<FloatMenuOption> opts)
-        {
-            if (GlobalFlag.currThing == null)
-                opts.Clear();
-        }
-
+        // Original LWM DeepStorage Right Click
         // We have to run as Prefix, because we need to intercept the incoming List.
         public static bool OldContextMenu(Vector3 clickPosition, IntVec3 c, Pawn pawn, List<FloatMenuOption> opts)
         {
